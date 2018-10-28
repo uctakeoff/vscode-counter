@@ -1,37 +1,208 @@
 {
-    "name": "vscode-counter",
-    "displayName": "vscode-counter",
-    "description": "",
-    "version": "0.0.1",
-    "publisher": "KentaroUshiyama",
-    "engines": {
-        "vscode": "^1.28.0"
-    },
-    "categories": [
-        "Other"
+  "name": "vscode-counter",
+  "displayName": "VSCode-Counter",
+  "description": "counts blank lines, comment lines, and physical lines of source code in many programming languages.",
+  "version": "0.0.1",
+  "publisher": "Kentaro Ushiyama",
+  "icon": "images/icon.png",
+  "license": "SEE LICENSE IN LICENSE",
+  "homepage": "https://github.com/uctakeoff/vscode-counter",
+  "author": {
+    "name": "Kentaro Ushiyama",
+    "url": "https://github.com/uctakeoff"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/uctakeoff/vscode-counter.git"
+  },
+  "engines": {
+    "vscode": "^1.28.0"
+  },
+  "categories": [
+    "Other",
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onCommand:extension.vscode-counter.countInFile",
+    "onCommand:extension.vscode-counter.countInDirectory"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "extension.vscode-counter.countInFile",
+        "category": "VSCodeCounter",
+        "title": "%commands.countInFile.title%",
+        "icon": "images/icon.png"
+      },
+      {
+        "command": "extension.vscode-counter.countInDirectory",
+        "category": "VSCodeCounter",
+        "title": "%commands.countInDirectory.title%",
+        "icon": "images/icon.png"
+      }
     ],
-    "activationEvents": [
-        "onCommand:extension.sayHello"
-    ],
-    "main": "./out/extension",
-    "contributes": {
-        "commands": [{
-            "command": "extension.sayHello",
-            "title": "Hello World"
-        }]
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "extension.vscode-counter.countInDirectory",
+          "when": "explorerResourceIsFolder",
+          "group": "2_workspace"
+        }
+      ]
     },
-    "scripts": {
-        "vscode:prepublish": "npm run compile",
-        "compile": "tsc -p ./",
-        "watch": "tsc -watch -p ./",
-        "postinstall": "node ./node_modules/vscode/bin/install",
-        "test": "npm run compile && node ./node_modules/vscode/bin/test"
-    },
-    "devDependencies": {
-        "typescript": "^2.6.1",
-        "vscode": "^1.1.21",
-        "tslint": "^5.8.0",
-        "@types/node": "^8.10.25",
-        "@types/mocha": "^2.2.42"
+    "configuration": {
+      "type": "object",
+      "title": "VSCode-Counter",
+      "properties": {
+        "vscode-counter.showInStatusBar": {
+          "description": "%configuration.showInStatusBar.description%",
+          "type": "boolean",
+          "default": true
+        },
+        "vscode-counter.useGitignore": {
+          "description": "%configuration.useGitignore.description%",
+          "type": "boolean",
+          "default": true
+        },
+        "vscode-counter.useFilesExclude": {
+          "description": "%configuration.useFilesExclude.description%",
+          "type": "boolean",
+          "default": true
+        },
+        "vscode-counter.ignoreUnsupportedFile": {
+          "description": "%configuration.ignoreUnsupportedFile.description%",
+          "type": "boolean",
+          "default": true
+        },
+        "vscode-counter.include": {
+          "description": "%configuration.include.description%",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/*"
+          ]
+        },
+        "vscode-counter.exclude": {
+          "description": "%configuration.exclude.description%",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/.vscode/**",
+            "**/node_modules/**"
+          ]
+        },
+        "vscode-counter.outputDirectory": {
+          "description": "%configuration.outputDirectory.description%",
+          "type": "string",
+          "default": ".vscode-counter"
+        },
+        "vscode-counter.outputAsText": {
+          "description": "%configuration.outputAsText.description%",
+          "type": "boolean",
+          "default": true
+        },
+        "vscode-counter.outputAsCSV": {
+          "description": "%configuration.outputAsCSV.description%",
+          "type": "boolean",
+          "default": true
+        },
+        "vscode-counter.outputAsMarkdown": {
+          "description": "%configuration.outputAsMarkdown.description%",
+          "type": "boolean",
+          "default": true
+        },
+        "vscode-counter.blockComment": {
+          "description": "%configuration.blockComment.description%",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "types": {
+                "description": "%configuration.blockComment.types.description%",
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "patterns": {
+                "description": "%configuration.blockComment.patterns.description%",
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "default": [
+            {
+              "types": [
+                "cpp"
+              ],
+              "patterns": [
+                [
+                  "R\"(",
+                  ")\""
+                ]
+              ]
+            },
+            {
+              "types": [
+                "lua"
+              ],
+              "patterns": [
+                [
+                  "[[",
+                  "]]"
+                ]
+              ]
+            },
+            {
+              "types": [
+                ".js",
+                ".jsx",
+                ".ts",
+                ".tsx"
+              ],
+              "patterns": [
+                [
+                  "`",
+                  "`"
+                ]
+              ]
+            }
+          ]
+        }
+      }
     }
+  },
+  "main": "./out/extension",
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "postinstall": "node ./node_modules/vscode/bin/install",
+    "test": "npm run compile && node ./node_modules/vscode/bin/test"
+  },
+  "devDependencies": {
+    "typescript": "^2.6.1",
+    "vscode": "^1.1.21",
+    "tslint": "^5.8.0",
+    "@types/node": "^8.10.25",
+    "@types/mocha": "^2.2.42"
+  },
+  "dependencies": {
+    "json5": "^2.1.0",
+    "jsonc-parser": "^2.0.2",
+    "vscode-nls": "^4.0.0"
+  }
 }
