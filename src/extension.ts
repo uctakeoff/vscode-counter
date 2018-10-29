@@ -292,10 +292,12 @@ class ResultTable {
         this.fileResults.push(new Result(relativePath, language, 'Error:' + err.message));
     }
     public toCSVLines() {
+        const languages = [...this.langResultTable.keys()];
         return [
-            'file path, language, code, comment, blank, total',
+            `filename, language, ${languages.join(', ')}, comment, blank, total`,
             ...this.fileResults.sort((a,b) => a.filename < b.filename ? -1 : a.filename > b.filename ? 1 : 0)
-                .map(v => `${v.filename}, ${v.language}, ${v.code}, ${v.comment}, ${v.blank}, ${v.total}`),
+                .map(v => `${v.filename}, ${v.language}, ${languages.map(l => l === v.language ? v.code : 0)}, ${v.comment}, ${v.blank}, ${v.total}`),
+            `Total, -, ${[...this.langResultTable.values()].map(r => r.code).join(', ')}, ${this.total.comment}, ${this.total.blank}, ${this.total.total}`
         ];
     }
     public toTextLines() {
@@ -325,7 +327,7 @@ class ResultTable {
         }
         const maxNamelen = Math.max(...this.fileResults.map(res => res.filename.length));
         const maxLanglen = Math.max(...[...this.langResultTable.keys()].map(l => l.length));
-        const resultFormat = new Formatter({title:'file path', width:maxNamelen}, {title:'language', width:maxLanglen}, 
+        const resultFormat = new Formatter({title:'filename', width:maxNamelen}, {title:'language', width:maxLanglen}, 
             {title:'code', width:10}, {title:'comment', width:10}, {title:'blank', width:10}, {title:'total', width:10});
         const dirFormat = new Formatter({title:'path', width:maxNamelen}, {title:'files', width:10}, 
             {title:'code', width:10}, {title:'comment', width:10}, {title:'blank', width:10}, {title:'total', width:10});
