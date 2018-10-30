@@ -1,6 +1,6 @@
 {
   "name": "vscode-counter",
-  "displayName": "VSCode-Counter",
+  "displayName": "VSCode Counter",
   "description": "counts blank lines, comment lines, and physical lines of source code in many programming languages.",
   "version": "0.0.1",
   "publisher": "Kentaro Ushiyama",
@@ -23,6 +23,7 @@
     "Programming Languages"
   ],
   "activationEvents": [
+    "*",
     "onCommand:extension.vscode-counter.countInFile",
     "onCommand:extension.vscode-counter.countInDirectory"
   ],
@@ -52,29 +53,29 @@
     },
     "configuration": {
       "type": "object",
-      "title": "VSCode-Counter",
+      "title": "VSCode Counter",
       "properties": {
-        "vscode-counter.showInStatusBar": {
+        "VSCodeCounter.showInStatusBar": {
           "description": "%configuration.showInStatusBar.description%",
           "type": "boolean",
-          "default": true
+          "default": false
         },
-        "vscode-counter.useGitignore": {
+        "VSCodeCounter.useGitignore": {
           "description": "%configuration.useGitignore.description%",
           "type": "boolean",
           "default": true
         },
-        "vscode-counter.useFilesExclude": {
+        "VSCodeCounter.useFilesExclude": {
           "description": "%configuration.useFilesExclude.description%",
           "type": "boolean",
           "default": true
         },
-        "vscode-counter.ignoreUnsupportedFile": {
+        "VSCodeCounter.ignoreUnsupportedFile": {
           "description": "%configuration.ignoreUnsupportedFile.description%",
           "type": "boolean",
           "default": true
         },
-        "vscode-counter.include": {
+        "VSCodeCounter.include": {
           "description": "%configuration.include.description%",
           "type": "array",
           "items": {
@@ -84,7 +85,7 @@
             "**/*"
           ]
         },
-        "vscode-counter.exclude": {
+        "VSCodeCounter.exclude": {
           "description": "%configuration.exclude.description%",
           "type": "array",
           "items": {
@@ -95,27 +96,35 @@
             "**/node_modules/**"
           ]
         },
-        "vscode-counter.outputDirectory": {
+        "VSCodeCounter.outputDirectory": {
           "description": "%configuration.outputDirectory.description%",
           "type": "string",
-          "default": ".vscode-counter"
+          "default": ".VSCodeCounter"
         },
-        "vscode-counter.outputAsText": {
+        "VSCodeCounter.outputAsText": {
           "description": "%configuration.outputAsText.description%",
           "type": "boolean",
           "default": true
         },
-        "vscode-counter.outputAsCSV": {
+        "VSCodeCounter.outputAsCSV": {
           "description": "%configuration.outputAsCSV.description%",
           "type": "boolean",
           "default": true
         },
-        "vscode-counter.outputAsMarkdown": {
+        "VSCodeCounter.outputAsMarkdown": {
           "description": "%configuration.outputAsMarkdown.description%",
           "type": "boolean",
           "default": true
         },
-        "vscode-counter.blockComment": {
+        "VSCodeCounter.outputPreviewType": {
+          "description": "%configuration.outputPreviewType.description%",
+          "type": "string",
+          "enum": [
+            "none", "text", "csv", "markdown"
+          ],
+          "default": "markdown"
+        },
+        "VSCodeCounter.blockComment": {
           "description": "%configuration.blockComment.description%",
           "type": "array",
           "items": {

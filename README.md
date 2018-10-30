@@ -1,6 +1,6 @@
 # vscode-counter README
 
-This is the README for your extension "vscode-counter". After writing up a brief description, we recommend including the following sections.
+VS Code extension: counts blank lines, comment lines, and physical lines of source code in many programming languages.
 
 ## Features
 

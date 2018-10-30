@@ -1,7 +1,7 @@
 {
   "commands.countInFile.title": "リアルタイムコードカウンタの表示・非表示切り替え",
-  "commands.countInDirectory.title": "ワークスペース内のコード行を数える",
-  "configuration.showInStatusBar.description": "カウント結果をリアルタイムでステータスバーに表示する.",
+  "commands.countInDirectory.title": "ディレクトリ内のコード行を数える",
+  "configuration.showInStatusBar.description": "現在のファイルのカウント結果をリアルタイムでステータスバーに表示する.",
   "configuration.useGitignore.description": "対象ファイルを除外するために '.gitignore' を使う.",
   "configuration.useFilesExclude.description": "対象ファイルを除外するために 'files.exclude' 設定を使う.",
   "configuration.ignoreUnsupportedFile.description": "サポートしないファイルを無視する.",
@@ -11,6 +11,7 @@
   "configuration.outputAsText.description": "結果をテキストファイルで出力する.",
   "configuration.outputAsCSV.description": "結果をCSVファイルで出力する.",
   "configuration.outputAsMarkdown.description": "結果をMarkdown形式で出力する.",
+  "configuration.outputPreviewType.description": "カウント後にプレビューする出力ファイルの種類.",
   "configuration.blockComment.description": "ブロックコメント(ヒアドキュメント)の先頭と末尾を示すパターンを定義する.\n複数行にまたがるような文字列を判別するために使用する.この内部に現れたコメント行はコード行とみなされる.\n -types: 言語の種類. languageId(例 cpp, csharp, javascript...), エイリアス名(例 C++, C#, JavaScript), 拡張子(eg .cpp, .cs, .js) のいずれかで指定する.\n - patterns: コメント範囲を示すパターン.",
   "configuration.blockComment.types.description": "言語の種類.\n languageId(例 cpp, csharp, javascript...), エイリアス名(例 C++, C#, JavaScript), 拡張子(eg .cpp, .cs, .js) のいずれかで指定する.",
   "configuration.blockComment.patterns.description": "コメント範囲を示すパターン."

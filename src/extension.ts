@@ -9,15 +9,18 @@ import Gitignore from './Gitignore';
 import * as JSONC from 'jsonc-parser';
 
 const EXTENSION_NAME = 'VSCodeCounter';
-const CONFIGURATION_SECTION = 'vscode-counter';
+const CONFIGURATION_SECTION = 'VSCodeCounter';
+const toZeroPadString = (num: number, fig: number) => num.toString().padStart(fig, '0');
+
+const dateToString = (date: Date) => `${date.getFullYear()}-${toZeroPadString(date.getMonth()+1, 2)}-${toZeroPadString(date.getDate(), 2)}`
+                + ` ${toZeroPadString(date.getHours(), 2)}:${toZeroPadString(date.getMinutes(), 2)}:${toZeroPadString(date.getSeconds(), 2)}`;
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
     // Use the console to output diagnostic information (console.log) and errors (console.error)
     // This line of code will only be executed once when your extension is activated
-    console.log(`Congratulations, your extension "${EXTENSION_NAME}" is now active!`);
-    console.log(context.extensionPath);
+    console.log(`Congratulations, your extension "${EXTENSION_NAME}" ${context.extensionPath} is now active!`);
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with  registerCommand
     // The commandId parameter must match the command field in package.json
@@ -55,10 +58,22 @@ class CodeCounterController {
         const dir = vscode.workspace.rootPath;
         if (targetDir !== undefined) {
             this.codeCounter.countLinesInDirectory(targetDir.fsPath);
-        } else if (typeof dir === 'string') {
-            this.codeCounter.countLinesInDirectory(dir);
         } else {
-            vscode.window.showInformationMessage('No open workspace!');
+            const option = {
+                value : dir || "",
+                placeHolder: "Input Directory Path",
+                prompt: "Input Directory Path. "
+            };
+            vscode.window.showInputBox(option).then(dirPath => {
+                if (dirPath !== undefined) {
+                    this.codeCounter.countLinesInDirectory(dirPath);
+                    // vscode.window.showInformationMessage(`${EXTENSION_NAME} : No open workspace!`);
+                }
+            });
+
+        // } else if (typeof dir === 'string') {
+        //     this.codeCounter.countLinesInDirectory(dir);
+        // } else {
         }
     }
     public toggleShowCounter() {
@@ -75,33 +90,64 @@ class CodeCounterController {
     }
     private onDidChangeConfiguration() {
         console.log('onDidChangeConfiguration()');
+        this.codeCounter.dispose();
         this.codeCounter = new CodeCounter();
         this.codeCounter.countCurrentFile();
     }
 }
 
 class CodeCounter {
-    private statusBarItem: vscode.StatusBarItem =  vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
+    private outputChannel: vscode.OutputChannel|null = null;
+    private statusBarItem: vscode.StatusBarItem|null = null;
     private configuration: vscode.WorkspaceConfiguration;
     private lineCounterTable: LineCounterTable;
-    private showInStatusBar = false;
 
     constructor() {
         this.configuration = vscode.workspace.getConfiguration(CONFIGURATION_SECTION);
         this.lineCounterTable = new LineCounterTable(this.configuration);
-        // this.showInStatusBar = this.getConf('showInStatusBar', true);
+        if (this.getConf('showInStatusBar', false)) {
+            this.toggleShowCounter();
+        }
+    }
+    dispose() {
+        if (this.statusBarItem !== null) {
+            this.statusBarItem.dispose();
+        }
+        if (this.outputChannel !== null) {
+            this.outputChannel.dispose();
+        }
     }
     private getConf<T>(section: string, defaultValue: T): T {
         return this.configuration.get(section, defaultValue);
     }
+    private toOutputChannel(text: string) {
+        if (this.outputChannel === null) {
+            this.outputChannel = vscode.window.createOutputChannel(EXTENSION_NAME);
+        }
+        this.outputChannel.show();
+        this.outputChannel.appendLine(text);
+    }
+    private toStatusBar(getText: () => string) {
+        if (this.statusBarItem !== null) {
+            this.statusBarItem.show();
+            this.statusBarItem.text = getText();
+        }
+    }
     public toggleShowCounter() {
-        this.showInStatusBar = !this.showInStatusBar;
-        // this.configuration.update('showInStatusBar', this.showInStatusBar);
+        if (this.statusBarItem === null) {
+            this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
+        } else {
+            this.statusBarItem.hide();
+            this.statusBarItem.dispose();
+            this.statusBarItem = null;
+        }
+        this.configuration.update('showInStatusBar', this.statusBarItem !== null);
     }
     public countLinesInDirectory(dir: string) {
         console.log(`countLinesInDirectory : ${dir}`);
         const confFiles = vscode.workspace.getConfiguration("files");
-        const outputDir = path.resolve(vscode.workspace.rootPath || `.${path.sep}`, this.getConf('outputDirectory', ''));
+        const workspaceDir = vscode.workspace.rootPath || `.${path.sep}`;
+        const outputDir = path.resolve(workspaceDir, this.getConf('outputDirectory', ''));
         const ignoreUnsupportedFile = this.getConf('ignoreUnsupportedFile', true);
         const includes = this.getConf<Array<string>>('include', ['**/*']);
         const excludes = this.getConf<Array<string>>('exclude', []);
@@ -116,8 +162,6 @@ class CodeCounter {
         console.log(`encoding : ${encoding}`);
         console.log(`includes : ${includes.join(',')}`);
         console.log(`excludes : ${excludes.join(',')}`);
-        this.statusBarItem.text = `${EXTENSION_NAME}: Counting...`;
-        this.statusBarItem.show();
 
         vscode.workspace.findFiles(`{${includes.join(',')}}`, `{${excludes.join(',')}}`).then((files: vscode.Uri[]) => {
             new Promise((resolve: (p: string[])=> void, reject: (p: string[]) => void) => {
@@ -139,18 +183,18 @@ class CodeCounter {
                 // filePathes.forEach(p=> console.log(p));
                 return new Promise((resolve: (value: ResultTable)=> void, reject: (value: ResultTable) => void) => {
                     const results = new ResultTable();
+                    results.targetDirPath = dir;
                     let fileCount = 0;
                     filePathes.forEach(filepath => {
-                        const relativePath = path.relative(dir, filepath);
                         const lineCounter = this.lineCounterTable.getByPath(filepath);
                         if (lineCounter !== undefined) {
                             fs.readFile(filepath, encoding, (err, data) => {
-                                // console.log(filepath);
                                 ++fileCount;
                                 if (err) {
-                                    results.appendError(relativePath, lineCounter.name, err);
+                                    this.toOutputChannel(`"${filepath}" Read Error : ${err.message}.`);
+                                    results.appendEmpty(filepath, '(Read Error)');
                                 } else {
-                                    results.appendResult(relativePath, lineCounter.name, lineCounter.count(data));
+                                    results.appendResult(filepath, lineCounter.name, lineCounter.count(data));
                                 }
                                 if (fileCount === filePathes.length) {
                                     resolve(results);
@@ -158,7 +202,7 @@ class CodeCounter {
                             });
                         } else {
                             if (!ignoreUnsupportedFile) {
-                                results.fileResults.push(new Result(relativePath, '(Unsupported)'));
+                                results.appendEmpty(filepath, '(Unsupported)');
                             }
                             ++fileCount;
                             if (fileCount === filePathes.length) {
@@ -169,59 +213,65 @@ class CodeCounter {
                 });
             }).then((results: ResultTable) => {
                 console.log(`count ${results.fileResults.length} files`);
-                this.statusBarItem.hide();
+                if (results.fileResults.length <= 0) {
+                    vscode.window.showInformationMessage(`${EXTENSION_NAME} There was no target file.`);
+                    return;
+                }
+                const previewType = this.getConf<string>('outputPreviewType', '');
                 console.log(`OutputDir : ${outputDir}`);
                 makeDirectories(outputDir);
                 if (this.getConf('outputAsText', true)) {
-                    writeTextFile(path.join(outputDir, 'results.txt'), results.toTextLines().join(endOfLine))
-                    .then(ofilename => showTextFile(ofilename))
-                    .then(editor => console.log(`output file : ${editor.document.fileName}`))
-                    .catch(err => console.error(err));
+                    const promise = writeTextFile(path.join(outputDir, 'results.txt'), results.toTextLines().join(endOfLine));
+                    if (previewType === 'text') {
+                        promise.then(ofilename => showTextFile(ofilename))
+                            .then(editor => console.log(`output file : ${editor.document.fileName}`))
+                            .catch(err => console.error(err));
+                    } else {
+                        promise.then(ofilename => console.log(`output file : ${ofilename}`))
+                            .catch(err => console.error(err));
+                    }
                 }
                 if (this.getConf('outputAsCSV', true)) {
-                    writeTextFile(path.join(outputDir, 'results.csv'), results.toCSVLines().join(endOfLine))
-                    .then(ofilename => console.log(`output file : ${ofilename}`))
-                    .catch(err => console.error(err));
+                    const promise = writeTextFile(path.join(outputDir, 'results.csv'), results.toCSVLines().join(endOfLine));
+                    if (previewType === 'csv') {
+                        promise.then(ofilename => showTextFile(ofilename))
+                            .then(editor => console.log(`output file : ${editor.document.fileName}`))
+                            .catch(err => console.error(err));
+                    } else {
+                        promise.then(ofilename => console.log(`output file : ${ofilename}`))
+                            .catch(err => console.error(err));
+                    }
                 }
                 if (this.getConf('outputAsMarkdown', true)) {
-                    writeTextFile(path.join(outputDir, 'results.md'), results.toMarkdownLines().join(endOfLine));
-                    // , err => {
-                        // if (err) {
-                        //     console.log(err);
-                        // } else {
-                        //     let uri = vscode.Uri.parse('file:///' + path.join(outputDir, 'results.md'));
-                        //     vscode.commands.executeCommand("markdown.showPreview", uri);
-                        // }
-                    // });
+                    const promise = writeTextFile(path.join(outputDir, 'results.md'), results.toMarkdownLines().join(endOfLine));
+                    if (previewType === 'markdown') {
+                        promise.then(ofilename => vscode.commands.executeCommand("markdown.showPreview", vscode.Uri.file(ofilename)))
+                            .catch(err => console.error(err));
+                    } else {
+                        promise.then(ofilename => console.log(`output file : ${ofilename}`))
+                            .catch(err => console.error(err));
+                    }
                 }
             });
         });
     }
     public countCurrentFile() {
-        if (!this.showInStatusBar) {
-            this.statusBarItem.hide();
-            return;
-        }
-        // Get the current text editor
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-            this.statusBarItem.hide();
-            return;
-        }
-        const doc = editor.document;
-        const lineCounter = this.lineCounterTable.getByName(doc.languageId) || this.lineCounterTable.getByPath(doc.uri.fsPath);
-        console.log(`${path.basename(doc.uri.fsPath)}: ${JSON.stringify(lineCounter)})`);
-        if (lineCounter !== undefined) {
-            const result = lineCounter.count(doc.getText());
-            this.statusBarItem.text = `Code:${result.code} Comment:${result.comment} Blank:${result.blank} Total:${result.code+result.comment+result.blank}`;
-            this.statusBarItem.show();
-        } else {
-            this.statusBarItem.text = `${EXTENSION_NAME}:Unsupported`;
-            this.statusBarItem.show();
-        }
-    }
-    dispose() {
-        this.statusBarItem.dispose();
+        this.toStatusBar(() => {
+            // Get the current text editor
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                return `${EXTENSION_NAME}:Unsupported`;
+            }
+            const doc = editor.document;
+            const lineCounter = this.lineCounterTable.getByName(doc.languageId) || this.lineCounterTable.getByPath(doc.uri.fsPath);
+            console.log(`${path.basename(doc.uri.fsPath)}: ${JSON.stringify(lineCounter)})`);
+            if (lineCounter !== undefined) {
+                const result = lineCounter.count(doc.getText());
+                return `Code:${result.code} Comment:${result.comment} Blank:${result.blank} Total:${result.code+result.comment+result.blank}`;
+            } else {
+                return `${EXTENSION_NAME}:Unsupported`;
+            }
+        });
     }
 }
 
@@ -269,14 +319,16 @@ class Statistics {
     }
 }
 class ResultTable {
+    public targetDirPath: string = ".";
     public fileResults: Result[] = [];
     public dirResultTable = new Map<string, Statistics>();
     public langResultTable = new Map<string, Statistics>();
-    public total = new Result('Total', '');
+    public total = new Statistics('Total');
 
-    public appendResult(relativePath: string, language: string, value: {code:number, comment:number, blank:number}) {
-        this.fileResults.push(new Result(relativePath, language).append(value));
-        let parent = path.dirname(relativePath);
+    public appendResult(filepath: string, language: string, value: {code:number, comment:number, blank:number}) {
+        const result = new Result(path.relative(this.targetDirPath, filepath), language).append(value);
+        this.fileResults.push(result);
+        let parent = path.dirname(result.filename);
         while (parent.length > 0) {
             getOrSetFirst(this.dirResultTable, parent, () => new Statistics(parent)).append(value);
             const p = path.dirname(parent);
@@ -288,15 +340,18 @@ class ResultTable {
         getOrSetFirst(this.langResultTable, language, () => new Statistics(language)).append(value);
         this.total.append(value);
     }
-    public appendError(relativePath: string, language: string, err:NodeJS.ErrnoException) {
-        this.fileResults.push(new Result(relativePath, language, 'Error:' + err.message));
+    public appendError(filepath: string, language: string, err:NodeJS.ErrnoException) {
+        this.fileResults.push(new Result(path.relative(this.targetDirPath, filepath), language, 'Error:' + err.message));
+    }
+    public appendEmpty(filepath: string, language: string) {
+        this.fileResults.push(new Result(path.relative(this.targetDirPath, filepath), language));
     }
     public toCSVLines() {
         const languages = [...this.langResultTable.keys()];
         return [
             `filename, language, ${languages.join(', ')}, comment, blank, total`,
             ...this.fileResults.sort((a,b) => a.filename < b.filename ? -1 : a.filename > b.filename ? 1 : 0)
-                .map(v => `${v.filename}, ${v.language}, ${languages.map(l => l === v.language ? v.code : 0)}, ${v.comment}, ${v.blank}, ${v.total}`),
+                .map(v => `${v.filename}, ${v.language}, ${languages.map(l => l === v.language ? v.code : 0).join(', ')}, ${v.comment}, ${v.blank}, ${v.total}`),
             `Total, -, ${[...this.langResultTable.values()].map(r => r.code).join(', ')}, ${this.total.comment}, ${this.total.blank}, ${this.total.total}`
         ];
     }
@@ -306,7 +361,7 @@ class ResultTable {
             constructor(...columnInfo: {title:string, width:number}[]) {
                 this.columnInfo = columnInfo;
             }
-            private get lineSeparator() {
+            public get lineSeparator() {
                 return '+-' + this.columnInfo.map(i => '-'.repeat(i.width)).join('-+-') + '-+';
             }
             get headerLines() {
@@ -334,12 +389,17 @@ class ResultTable {
         const langFormat = new Formatter({title:'language', width:maxLanglen}, {title:'files', width:10}, 
             {title:'code', width:10}, {title:'comment', width:10}, {title:'blank', width:10}, {title:'total', width:10});
         return [
-            'Files',
-            ...resultFormat.headerLines, 
-            ...this.fileResults.sort((a,b) => a.filename < b.filename ? -1 : a.filename > b.filename ? 1 : 0)
-                .map(v => resultFormat.line(v.filename, v.language, v.code, v.comment, v.blank, v.total)),
-            resultFormat.line(this.total.filename, this.total.language, this.total.code, this.total.comment, this.total.blank, this.total.total),
-            ...resultFormat.footerLines, 
+            '='.repeat(resultFormat.headerLines[0].length),
+            `Directory : ${this.targetDirPath}`,
+            `Date : ${dateToString(new Date())}`,
+            // `Total : code: ${this.total.code}, comment : ${this.total.comment}, blank : ${this.total.blank}, all ${this.total.total} lines`,
+            `Total : ${this.total.code} codes, ${this.total.comment} comments, ${this.total.blank} blanks, all ${this.total.total} lines`,
+            '',
+            'Languages',
+            ...langFormat.headerLines, 
+            ...[...this.langResultTable.values()].sort((a,b) => b.code - a.code)
+                .map(v => langFormat.line(v.name, v.files, v.code, v.comment, v.blank, v.total)),
+            ...langFormat.footerLines, 
             '',
             'Directories',
             ...dirFormat.headerLines, 
@@ -347,14 +407,16 @@ class ResultTable {
                 .map(v => dirFormat.line(v.name, v.files, v.code, v.comment, v.blank, v.total)),
             ...dirFormat.footerLines, 
             '',
-            'Languages',
-            ...langFormat.headerLines, 
-            ...[...this.langResultTable.values()].sort((a,b) => b.code - a.code)
-                .map(v => langFormat.line(v.name, v.files, v.code, v.comment, v.blank, v.total)),
-            ...langFormat.footerLines, 
+            'Files',
+            ...resultFormat.headerLines, 
+            ...this.fileResults.sort((a,b) => a.filename < b.filename ? -1 : a.filename > b.filename ? 1 : 0)
+                .map(v => resultFormat.line(v.filename, v.language, v.code, v.comment, v.blank, v.total)),
+            resultFormat.line('Total', '', this.total.code, this.total.comment, this.total.blank, this.total.total),
+            ...resultFormat.footerLines, 
         ];
     }
     public toMarkdownLines() {
+        const dir = this.targetDirPath;
         class MarkdownFormatter {
             private columnInfo: {title:string, format:string}[];
             constructor(...columnInfo: {title:string, format:string}[]) {
@@ -367,10 +429,10 @@ class ResultTable {
                 return ['| ' + this.columnInfo.map(i => i.title).join(' | ') + ' |', this.lineSeparator];
             }
             public line(...data: (string|number|boolean)[]) {
-                return '| ' + data.map((d, i) => (typeof d !== 'string') ? d.toString() : (this.columnInfo[i].format === 'uri') ? `[${d}](${d})` : d).join(' | ') + ' |';
+                return '| ' + data.map((d, i) => (typeof d !== 'string') ? d.toString() : (this.columnInfo[i].format === 'uri') ? `[${d}](${vscode.Uri.file(path.join(dir, d))})` : d).join(' | ') + ' |';
             }
         }
-        const resultFormat = new MarkdownFormatter({title:'file path', format:'uri'}, {title:'language', format:'string'}, 
+        const resultFormat = new MarkdownFormatter({title:'filename', format:'uri'}, {title:'language', format:'string'}, 
             {title:'code', format:'number'}, {title:'comment', format:'number'}, {title:'blank', format:'number'}, {title:'total', format:'number'});
         const dirFormat = new MarkdownFormatter({title:'path', format:'string'}, {title:'files', format:'number'}, 
             {title:'code', format:'number'}, {title:'comment', format:'number'}, {title:'blank', format:'number'}, {title:'total', format:'number'});
@@ -378,11 +440,16 @@ class ResultTable {
             {title:'code', format:'number'}, {title:'comment', format:'number'}, {title:'blank', format:'number'}, {title:'total', format:'number'});
     
         return [
-            '## Files',
-            ...resultFormat.headerLines, 
-            ...this.fileResults.sort((a,b) => a.filename < b.filename ? -1 : a.filename > b.filename ? 1 : 0)
-                .map(v => resultFormat.line(v.filename, v.language, v.code, v.comment, v.blank, v.total)),
-            resultFormat.line(this.total.filename, this.total.language, this.total.code, this.total.comment, this.total.blank, this.total.total),
+            `# ${dir}`,
+            '',
+            `Date : ${dateToString(new Date())}`,
+            '',
+            `Total : ${this.total.code} codes, ${this.total.comment} comments, ${this.total.blank} blanks, all ${this.total.total} lines`,
+            '',
+            '## Languages',
+            ...langFormat.headerLines, 
+            ...[...this.langResultTable.values()].sort((a,b) => b.code - a.code)
+                .map(v => langFormat.line(v.name, v.files, v.code, v.comment, v.blank, v.total)),
             '',
             '## Directories',
             ...dirFormat.headerLines, 
@@ -390,10 +457,10 @@ class ResultTable {
             ...[...this.dirResultTable.values()].sort((a,b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
                 .map(v => dirFormat.line(v.name, v.files, v.code, v.comment, v.blank, v.total)),
             '',
-            '## Languages',
-            ...langFormat.headerLines, 
-            ...[...this.langResultTable.values()].sort((a,b) => b.code - a.code)
-                .map(v => langFormat.line(v.name, v.files, v.code, v.comment, v.blank, v.total)),
+            '## Files',
+            ...resultFormat.headerLines, 
+            ...this.fileResults.sort((a,b) => a.filename < b.filename ? -1 : a.filename > b.filename ? 1 : 0)
+                .map(v => resultFormat.line(v.filename, v.language, v.code, v.comment, v.blank, v.total)),
         ];
     }
 }

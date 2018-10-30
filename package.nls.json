@@ -1,7 +1,7 @@
 {
-  "commands.countInFile.title": "Toggle Realtime CodeCounter Visibility",
-  "commands.countInDirectory.title": "Count lines in workspace",
-  "configuration.showInStatusBar.description": "Whether to show a 'codecounter' item in the status bar for real-time counting.",
+  "commands.countInFile.title": "Toggle Real-time Counter Visibility",
+  "commands.countInDirectory.title": "Count lines in directory",
+  "configuration.showInStatusBar.description": "Whether to show the count result of the current file on the status bar in real time.",
   "configuration.useGitignore.description": "Whether to use '.gitignore' files for excluding files.",
   "configuration.useFilesExclude.description": "Whether to use setting 'files.exclude' for excluding files.",
   "configuration.ignoreUnsupportedFile.description": "Ignore unsupported files.",
@@ -11,6 +11,7 @@
   "configuration.outputAsText.description": "Whether to output the result as a text file.",
   "configuration.outputAsCSV.description": "Whether to output the result as a CSV file.",
   "configuration.outputAsMarkdown.description": "Whether to output the result as a Markdown file.",
+  "configuration.outputPreviewType.description": "Type of output file to preview after counting.",
   "configuration.blockComment.description": "Define patterns indicating the beginning and end of the block document(here document).\nIt is used to distinguish between strings that span multiple lines, and the comment lines displayed in it are considered code lines.\n - types: Language types. Allows you to specify languageId(eg cpp, csharp, javascript...), aliases(eg C++, C#, JavaScript), and extensions(eg .cpp, .cs, .js).\n - patterns: patterns indicating the range of comments.",
   "configuration.blockComment.types.description": "Language types. \nAllows you to specify languageId(eg cpp, csharp, javascript...), aliases(eg C++, C#, JavaScript), and extensions(eg .cpp, .cs, .js).",
   "configuration.blockComment.patterns.description": "patterns indicating the range of comments."
