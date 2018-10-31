@@ -1,26 +1,33 @@
 {
+  "preview": true,
   "name": "vscode-counter",
   "displayName": "VSCode Counter",
   "description": "counts blank lines, comment lines, and physical lines of source code in many programming languages.",
   "version": "0.0.1",
-  "publisher": "Kentaro Ushiyama",
-  "icon": "images/icon.png",
-  "license": "SEE LICENSE IN LICENSE",
-  "homepage": "https://github.com/uctakeoff/vscode-counter",
+  "publisher": "KentaroUshiyama",
   "author": {
-    "name": "Kentaro Ushiyama",
-    "url": "https://github.com/uctakeoff"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/uctakeoff/vscode-counter.git"
+    "name": "Kentaro Ushiyama"
   },
   "engines": {
     "vscode": "^1.28.0"
   },
+  "galleryBanner": {
+    "color": "#BF9C68",
+    "theme": "dark"
+  },
+  "license": "SEE LICENSE IN LICENSE.txt",
+  "icon": "images/icon.png",
+  "homepage": "https://github.com/uctakeoff/vscode-counter",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/uctakeoff/vscode-counter.git"
+  },
   "categories": [
     "Other",
     "Programming Languages"
+  ],
+  "keywords": [
+    "code", "count", "counter", "step", "line"
   ],
   "activationEvents": [
     "*",

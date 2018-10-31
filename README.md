@@ -4,62 +4,48 @@ VS Code extension: counts blank lines, comment lines, and physical lines of sour
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+- Count the code lines of source code in workspace or directory.
+- Count the code lines of the current file in real time.
 
-For example if there is an image subfolder under your extension project workspace:
 
-\!\[feature X\]\(images/feature-x.png\)
+## Usage
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+### Count in workspace
 
-## Requirements
+* Open the command palette and select  `VSCode Counter: Count lines in directory`.
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+    ![](images/count_workspace.gif)
+
+
+### Count in any directory
+
+* Open Explorer and right click on the folder.
+* Select `Count lines in directory`.
+
+    ![](images/from_menu.gif)
+
+
+### Real-time counter
+
+* Open the command palette and select  `VSCode Counter: Toggle Real-time Counter Visibility`.
+
+    ![](images/realtime_counter.png)
+
+
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: enable/disable this extension
-* `myExtension.thing`: set to `blah` to do something
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
------------------------------------------------------------------------------------------------------------
-
-## Working with Markdown
-
-**Note:** You can author your README using Visual Studio Code.  Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux)
-* Toggle preview (`Shift+CMD+V` on macOS or `Shift+Ctrl+V` on Windows and Linux)
-* Press `Ctrl+Space` (Windows, Linux) or `Cmd+Space` (macOS) to see a list of Markdown snippets
-
-### For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
+* `VSCodeCounter.showInStatusBar`: Whether to show the count result of the current file on the status bar in real time.
+* `VSCodeCounter.useGitignore`: Whether to use '.gitignore' files for excluding files.
+* `VSCodeCounter.useFilesExclude`: Whether to use setting 'files.exclude' for excluding files.
+* `VSCodeCounter.ignoreUnsupportedFile`: Ignore unsupported files.
+* `VSCodeCounter.include`: Configure glob patterns for including files and folders.
+* `VSCodeCounter.exclude`: Configure glob patterns for excluding files and folders.
+* `VSCodeCounter.outputDirectory`: Directory path for outputting results.
+* `VSCodeCounter.outputAsText`: Whether to output the result as a text file.
+* `VSCodeCounter.outputAsCSV`: Whether to output the result as a CSV file.
+* `VSCodeCounter.outputAsMarkdown`: Whether to output the result as a Markdown file.
+* `VSCodeCounter.outputPreviewType`: Type of output file to preview after counting. Choose from `text`, `csv`, `markdown` or `none`.
+* `VSCodeCounter.blockComment`: Define patterns indicating the beginning and end of the block document(here document).
 
 **Enjoy!**
