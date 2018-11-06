@@ -13,7 +13,13 @@ const CONFIGURATION_SECTION = 'VSCodeCounter';
 const toZeroPadString = (num: number, fig: number) => num.toString().padStart(fig, '0');
 const dateToString = (date: Date) => `${date.getFullYear()}-${toZeroPadString(date.getMonth()+1, 2)}-${toZeroPadString(date.getDate(), 2)}`
                 + ` ${toZeroPadString(date.getHours(), 2)}:${toZeroPadString(date.getMinutes(), 2)}:${toZeroPadString(date.getSeconds(), 2)}`;
-
+const toStringWithCommas = (obj: any) => {
+    if (typeof obj === 'number') {
+        return new Intl.NumberFormat('en-US').format(obj);
+    } else {
+        return obj.toString();
+    }
+};
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -184,7 +190,7 @@ class CodeCounter {
             }).then((filePathes: string[]) => {
                 console.log(`${EXTENSION_NAME}: target : ${filePathes.length} files`);
                 return new Promise((resolve: (value: ResultTable)=> void, reject: (reason: string) => void) => {
-                    const results = new ResultTable(dir);
+                    const results = new ResultTable(dir, this.getConf('printNumberWithCommas', true) ? toStringWithCommas : (obj:any) => obj.toString() );
                     if (filePathes.length <= 0) {
                         resolve(results);
                     }
@@ -407,9 +413,11 @@ class ResultTable {
     private dirResultTable = new Map<string, Statistics>();
     private langResultTable = new Map<string, Statistics>();
     private total = new Statistics('Total');
+    private valueToString: (obj:any) => string;
 
-    constructor(dirpath: string) {
+    constructor(dirpath: string, valueToString = (obj:any) => obj.toString()) {
         this.targetDirPath = dirpath;
+        this.valueToString = valueToString;
     }
     public get length() {
         return this.fileResults.length;
@@ -446,10 +454,14 @@ class ResultTable {
         ];
     }
     public toTextLines() {
+        const valueToString = this.valueToString;
         class Formatter {
             private columnInfo: {title:string, width:number}[];
             constructor(...columnInfo: {title:string, width:number}[]) {
                 this.columnInfo = columnInfo;
+                for (const info of this.columnInfo) {
+                    info.width = Math.max(info.title.length, info.width);
+                }
             }
             public get lineSeparator() {
                 return '+-' + this.columnInfo.map(i => '-'.repeat(i.width)).join('-+-') + '-+';
@@ -465,7 +477,7 @@ class ResultTable {
                     if (typeof d === 'string') {
                         return d.padEnd(this.columnInfo[i].width);
                     } else {
-                        return d.toString().padStart(this.columnInfo[i].width);
+                        return valueToString(d).padStart(this.columnInfo[i].width);
                     }
                 }).join(' | ') + ' |';
             }
@@ -484,7 +496,7 @@ class ResultTable {
             `Directory : ${this.targetDirPath}`,
             `Date : ${dateToString(new Date())}`,
             // `Total : code: ${this.total.code}, comment : ${this.total.comment}, blank : ${this.total.blank}, all ${this.total.total} lines`,
-            `Total : ${this.total.code} codes, ${this.total.comment} comments, ${this.total.blank} blanks, all ${this.total.total} lines`,
+            `Total : ${this.total.files} files,  ${this.total.code} codes, ${this.total.comment} comments, ${this.total.blank} blanks, all ${this.total.total} lines`,
             '',
             'Languages',
             ...langFormat.headerLines, 
@@ -508,6 +520,7 @@ class ResultTable {
     }
     public toMarkdownLines() {
         const dir = this.targetDirPath;
+        const valueToString = this.valueToString;
         class MarkdownFormatter {
             private columnInfo: {title:string, format:string}[];
             constructor(...columnInfo: {title:string, format:string}[]) {
@@ -520,7 +533,7 @@ class ResultTable {
                 return ['| ' + this.columnInfo.map(i => i.title).join(' | ') + ' |', this.lineSeparator];
             }
             public line(...data: (string|number|boolean)[]) {
-                return '| ' + data.map((d, i) => (typeof d !== 'string') ? d.toString() : (this.columnInfo[i].format === 'uri') ? `[${d}](${vscode.Uri.file(path.join(dir, d))})` : d).join(' | ') + ' |';
+                return '| ' + data.map((d, i) => (typeof d !== 'string') ? valueToString(d) : (this.columnInfo[i].format === 'uri') ? `[${d}](${vscode.Uri.file(path.join(dir, d))})` : d).join(' | ') + ' |';
             }
         }
         const resultFormat = new MarkdownFormatter({title:'filename', format:'uri'}, {title:'language', format:'string'}, 
@@ -535,7 +548,7 @@ class ResultTable {
             '',
             `Date : ${dateToString(new Date())}`,
             '',
-            `Total : ${this.total.code} codes, ${this.total.comment} comments, ${this.total.blank} blanks, all ${this.total.total} lines`,
+            `Total : ${this.total.files} files,  ${this.total.code} codes, ${this.total.comment} comments, ${this.total.blank} blanks, all ${this.total.total} lines`,
             '',
             '## Languages',
             ...langFormat.headerLines, 

@@ -1,4 +1,4 @@
-# vscode-counter README
+# vscode-counter
 
 VS Code extension: counts blank lines, comment lines, and physical lines of source code in many programming languages.
 
@@ -38,6 +38,7 @@ VS Code extension: counts blank lines, comment lines, and physical lines of sour
 * `VSCodeCounter.showInStatusBar`: Whether to show the count result of the current file on the status bar in real time.
 * `VSCodeCounter.useGitignore`: Whether to use '.gitignore' files for excluding files.
 * `VSCodeCounter.useFilesExclude`: Whether to use setting 'files.exclude' for excluding files.
+* `VSCodeCounter.printNumberWithCommas`: Whether to print a number with commas as thousands separators.(except for CSV)
 * `VSCodeCounter.ignoreUnsupportedFile`: Ignore unsupported files.
 * `VSCodeCounter.include`: Configure glob patterns for including files and folders.
 * `VSCodeCounter.exclude`: Configure glob patterns for excluding files and folders.
