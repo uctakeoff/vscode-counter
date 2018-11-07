@@ -12,7 +12,7 @@ VS Code extension: counts blank lines, comment lines, and physical lines of sour
 
 ### Count in workspace
 
-* Open the command palette and select  `VSCode Counter: Count lines in directory`.
+* Open the command palette and select  `VSCode Counter: Count lines in workspace`.
 
     ![](images/count_workspace.gif)
 

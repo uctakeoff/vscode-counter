@@ -1,6 +1,7 @@
 {
   "commands.countInFile.title": "Toggle Real-time Counter Visibility",
   "commands.countInDirectory.title": "Count lines in directory",
+  "commands.countInWorkspace.title": "Count lines in workspace",
   "configuration.showInStatusBar.description": "Whether to show the count result of the current file on the status bar in real time.",
   "configuration.useGitignore.description": "Whether to use '.gitignore' files for excluding files.",
   "configuration.useFilesExclude.description": "Whether to use setting 'files.exclude' for excluding files.",
