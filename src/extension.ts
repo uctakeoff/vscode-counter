@@ -33,6 +33,7 @@ export function activate(context: vscode.ExtensionContext) {
     const codeCountController = new CodeCounterController();
     context.subscriptions.push(
         codeCountController,
+        vscode.commands.registerCommand('extension.vscode-counter.countInWorkspace', () => codeCountController.countInWorkspace()),
         vscode.commands.registerCommand('extension.vscode-counter.countInDirectory', (targetDir: vscode.Uri|undefined) => codeCountController.countInDirectory(targetDir)),
         vscode.commands.registerCommand('extension.vscode-counter.countInFile', () => codeCountController.toggleVisible())
     );
@@ -99,16 +100,24 @@ class CodeCounterController {
             });
         }
     }
-    private onDidChangeActiveTextEditor() {
-        if (this.codeCounter_ !== null) {
-            console.log(`${EXTENSION_NAME}: onDidChangeActiveTextEditor()`);
-            this.codeCounter.countCurrentFile();
+    public countInWorkspace() {
+        const dir = vscode.workspace.rootPath;
+        if (dir !== undefined) {
+            this.codeCounter.countLinesInDirectory(dir);
+        } else {
+            vscode.window.showErrorMessage(`${EXTENSION_NAME}: No open workspace`);
         }
     }
-    private onDidChangeTextDocument() {
+    private onDidChangeActiveTextEditor(e: vscode.TextEditor|undefined) {
+        if ((this.codeCounter_ !== null)) {
+            console.log(`${EXTENSION_NAME}: onDidChangeActiveTextEditor()`);
+            this.codeCounter.countFile((e !== undefined) ? e.document : undefined);
+        }
+    }
+    private onDidChangeTextDocument(e: vscode.TextDocumentChangeEvent) {
         if (this.codeCounter_ !== null) {
             console.log(`${EXTENSION_NAME}: onDidChangeTextDocument()`);
-            this.codeCounter.countCurrentFile();
+            this.codeCounter.countFile(e.document);
         }
     }
     private onDidChangeConfiguration() {
@@ -170,7 +179,7 @@ class CodeCounter {
         }
         excludes.push('.gitignore');
         const encoding = confFiles.get('encoding', 'utf8');
-        const endOfLine = confFiles.get('eol', '\n');
+        const endOfLine = this.getConf('endOfLine', '\n');
         console.log(`${EXTENSION_NAME}: includes : ${includes.join(',')}`);
         console.log(`${EXTENSION_NAME}: excludes : ${excludes.join(',')}`);
 
@@ -224,7 +233,7 @@ class CodeCounter {
             }).then((results: ResultTable) => {
                 console.log(`${EXTENSION_NAME}: count ${results.length} files`);
                 if (results.length <= 0) {
-                    vscode.window.showInformationMessage(`${EXTENSION_NAME}: There was no target file.`);
+                    vscode.window.showErrorMessage(`${EXTENSION_NAME}: There was no target file.`);
                     return;
                 }
                 const previewType = this.getConf<string>('outputPreviewType', '');
@@ -256,31 +265,35 @@ class CodeCounter {
                     }
                 }
             }).catch((reason: string) => {
-                vscode.window.showInformationMessage(`${EXTENSION_NAME}: Error has occurred.`, reason);
+                vscode.window.showErrorMessage(`${EXTENSION_NAME}: Error has occurred.`, reason);
             });
         });
     }
-    private countCurrentFile_() {
-        // Get the current text editor
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-            return `${EXTENSION_NAME}:Unsupported`;
+    private countFile_(doc: vscode.TextDocument|undefined) {
+        if (doc !== undefined) {
+            const lineCounter = this.lineCounterTable.getByName(doc.languageId) || this.lineCounterTable.getByPath(doc.uri.fsPath);
+            console.log(`${EXTENSION_NAME}: ${path.basename(doc.uri.fsPath)}: ${JSON.stringify(lineCounter)}`);
+            if (lineCounter !== undefined) {
+                const result = lineCounter.count(doc.getText());
+                // return `Code:${result.code} Comment:${result.comment} Blank:${result.blank} Total:${result.code+result.comment+result.blank}`;
+                return `Code:${result.code} Comment:${result.comment} Blank:${result.blank}`;
+            }
         }
-        const doc = editor.document;
-        const lineCounter = this.lineCounterTable.getByName(doc.languageId) || this.lineCounterTable.getByPath(doc.uri.fsPath);
-        console.log(`${path.basename(doc.uri.fsPath)}: ${JSON.stringify(lineCounter)}`);
-        if (lineCounter !== undefined) {
-            const result = lineCounter.count(doc.getText());
-            // return `Code:${result.code} Comment:${result.comment} Blank:${result.blank} Total:${result.code+result.comment+result.blank}`;
-            return `Code:${result.code} Comment:${result.comment} Blank:${result.blank}`;
-        } else {
-            return `${EXTENSION_NAME}:Unsupported`;
+        return `${EXTENSION_NAME}:Unsupported`;
+    }
+    public countFile(doc: vscode.TextDocument|undefined) {
+        if (this.statusBarItem !== null) {
+            this.statusBarItem.show();
+            this.statusBarItem.text = this.countFile_(doc);
         }
     }
     public countCurrentFile() {
-        if (this.statusBarItem !== null) {
-            this.statusBarItem.show();
-            this.statusBarItem.text = this.countCurrentFile_();
+        // Get the current text editor
+        const editor = vscode.window.activeTextEditor;
+        if (editor !== undefined) {
+            this.countFile(editor.document);
+        } else {
+            this.countFile(undefined);
         }
     }
 }

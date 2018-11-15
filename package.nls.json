@@ -7,6 +7,7 @@
   "configuration.useFilesExclude.description": "Whether to use setting 'files.exclude' for excluding files.",
   "configuration.printNumberWithCommas.description": "Whether to print a number with commas as thousands separators.(except for CSV)",
   "configuration.ignoreUnsupportedFile.description": "Ignore unsupported files.",
+  "configuration.endOfLine.description": "A new line character to be used in the output file.",
   "configuration.exclude.description": "Configure glob patterns for excluding files and folders.",
   "configuration.include.description": "Configure glob patterns for including files and folders.",
   "configuration.outputDirectory.description": "Directory path for outputting results.",

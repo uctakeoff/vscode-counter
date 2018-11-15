@@ -3,7 +3,7 @@
   "name": "vscode-counter",
   "displayName": "VSCode Counter",
   "description": "counts blank lines, comment lines, and physical lines of source code in many programming languages.",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "publisher": "uctakeoff",
   "author": {
     "name": "Kentaro Ushiyama"
@@ -93,6 +93,14 @@
           "description": "%configuration.printNumberWithCommas.description%",
           "type": "boolean",
           "default": true
+        },
+        "VSCodeCounter.endOfLine":{
+          "description": "%configuration.endOfLine.description%",
+          "type": "string",
+          "enum": [
+            "\n", "\r\n"
+          ],
+          "default": "\n"
         },
         "VSCodeCounter.include": {
           "description": "%configuration.include.description%",

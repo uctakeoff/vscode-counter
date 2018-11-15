@@ -7,6 +7,7 @@
   "configuration.useFilesExclude.description": "対象ファイルを除外するために 'files.exclude' 設定を使う.",
   "configuration.printNumberWithCommas.description": "数値をカンマ区切りで出力する (CSVを除く).",
   "configuration.ignoreUnsupportedFile.description": "サポートしないファイルを無視する.",
+  "configuration.endOfLine.description": "出力ファイルで使用する改行文字.",
   "configuration.exclude.description": "ファイルとフォルダーを除外するための glob パターン.",
   "configuration.include.description": "ファイルとフォルダーを追加するための glob パターン.",
   "configuration.outputDirectory.description": "結果出力先のディレクトリパス.",
