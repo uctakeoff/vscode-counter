@@ -168,7 +168,8 @@ class CodeCounter {
         console.log(`${EXTENSION_NAME}: countLinesInDirectory : ${dir}`);
         const confFiles = vscode.workspace.getConfiguration("files");
         const workspaceDir = vscode.workspace.rootPath || `.${path.sep}`;
-        const outputDir = path.resolve(workspaceDir, this.getConf('outputDirectory', ''));
+        const outputDir = this.getConf('outputDirectory', '.VSCodeCounter');
+        const outputDirPath = path.resolve(workspaceDir, outputDir);
         const ignoreUnsupportedFile = this.getConf('ignoreUnsupportedFile', true);
         const includes = this.getConf<Array<string>>('include', ['**/*']);
         const excludes = this.getConf<Array<string>>('exclude', []);
@@ -237,10 +238,10 @@ class CodeCounter {
                     return;
                 }
                 const previewType = this.getConf<string>('outputPreviewType', '');
-                console.log(`${EXTENSION_NAME}: OutputDir : ${outputDir}`);
-                makeDirectories(outputDir);
+                console.log(`${EXTENSION_NAME}: OutputDir : ${outputDirPath}`);
+                makeDirectories(outputDirPath);
                 if (this.getConf('outputAsText', true)) {
-                    const promise = writeTextFile(path.join(outputDir, 'results.txt'), results.toTextLines().join(endOfLine));
+                    const promise = writeTextFile(path.join(outputDirPath, 'results.txt'), results.toTextLines().join(endOfLine));
                     if (previewType === 'text') {
                         promise.then(ofilename => showTextFile(ofilename)).catch(err => console.error(err));
                     } else {
@@ -248,7 +249,7 @@ class CodeCounter {
                     }
                 }
                 if (this.getConf('outputAsCSV', true)) {
-                    const promise = writeTextFile(path.join(outputDir, 'results.csv'), results.toCSVLines().join(endOfLine));
+                    const promise = writeTextFile(path.join(outputDirPath, 'results.csv'), results.toCSVLines().join(endOfLine));
                     if (previewType === 'csv') {
                         promise.then(ofilename => showTextFile(ofilename)).catch(err => console.error(err));
                     } else {
@@ -256,7 +257,7 @@ class CodeCounter {
                     }
                 }
                 if (this.getConf('outputAsMarkdown', true)) {
-                    const promise = writeTextFile(path.join(outputDir, 'results.md'), results.toMarkdownLines().join(endOfLine));
+                    const promise = writeTextFile(path.join(outputDirPath, 'results.md'), results.toMarkdownLines().join(endOfLine));
                     if (previewType === 'markdown') {
                         promise.then(ofilename => vscode.commands.executeCommand("markdown.showPreview", vscode.Uri.file(ofilename)))
                             .catch(err => console.error(err));
