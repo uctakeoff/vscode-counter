@@ -2,6 +2,9 @@
 
 VS Code extension: counts blank lines, comment lines, and physical lines of source code in many programming languages.
 
+* [github](https://github.com/uctakeoff/vscode-counter)
+* [Marketplace](https://marketplace.visualstudio.com/items?itemName=uctakeoff.vscode-counter)
+
 ## Features
 
 - Count the code lines of source code in workspace or directory.

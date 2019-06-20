@@ -3,7 +3,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import * as path from 'path';
-import * as fs from 'fs';
+import * as fs from 'graceful-fs';
 import LineCounter from './LineCounter';
 import Gitignore from './Gitignore';
 import * as JSONC from 'jsonc-parser';
