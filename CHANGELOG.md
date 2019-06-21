@@ -5,7 +5,13 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
+
+## [1.1.1]
+
+### Added
+
 - resolve file types using ["files.associations"](https://code.visualstudio.com/docs/languages/overview#_adding-a-file-extension-to-a-language) setting.
+
 
 ## [1.0.1]
 ### Fixed

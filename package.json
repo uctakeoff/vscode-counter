@@ -2,10 +2,10 @@
   "name": "vscode-counter",
   "displayName": "VSCode Counter",
   "description": "counts blank lines, comment lines, and physical lines of source code in many programming languages.",
-  "version": "1.0.1",
+  "version": "1.1.1",
   "publisher": "uctakeoff",
   "author": {
-    "name": "Kentaro Ushiyama"
+    "name": "Ushiyama Kentaro"
   },
   "engines": {
     "vscode": "^1.28.0"
@@ -237,15 +237,17 @@
     "test": "npm run compile && node ./node_modules/vscode/bin/test"
   },
   "devDependencies": {
-    "typescript": "^2.6.1",
-    "vscode": "^1.1.21",
-    "tslint": "^5.8.0",
-    "@types/node": "^8.10.25",
+    "@types/graceful-fs": "^4.1.3",
+    "@types/minimatch": "^3.0.3",
     "@types/mocha": "^2.2.42",
-    "@types/graceful-fs": "^4.1.3"
+    "@types/node": "^8.10.25",
+    "tslint": "^5.8.0",
+    "typescript": "^2.9.2",
+    "vscode": "^1.1.21"
   },
   "dependencies": {
     "graceful-fs": "^4.1.15",
-    "jsonc-parser": "^2.0.2"
+    "jsonc-parser": "^2.0.2",
+    "minimatch": "^3.0.4"
   }
 }

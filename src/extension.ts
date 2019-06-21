@@ -7,6 +7,7 @@ import * as fs from 'graceful-fs';
 import LineCounter from './LineCounter';
 import Gitignore from './Gitignore';
 import * as JSONC from 'jsonc-parser';
+import * as minimatch from 'minimatch';
 
 const EXTENSION_NAME = 'VSCodeCounter';
 const CONFIGURATION_SECTION = 'VSCodeCounter';
@@ -26,7 +27,7 @@ const toStringWithCommas = (obj: any) => {
 export function activate(context: vscode.ExtensionContext) {
     // Use the console to output diagnostic information (console.log) and errors (console.error)
     // This line of code will only be executed once when your extension is activated
-    console.log(`${EXTENSION_NAME}: now active!`);
+    console.log(`[${EXTENSION_NAME}] now active!`);
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with  registerCommand
     // The commandId parameter must match the command field in package.json
@@ -65,7 +66,7 @@ class CodeCounterController {
     }
     private get codeCounter() {
         if (this.codeCounter_ === null) {
-            console.log(`${EXTENSION_NAME}: create CodeCounter`);
+            console.log(`[${EXTENSION_NAME}] create CodeCounter`);
             this.codeCounter_ = new CodeCounter(this.configuration);
         }
         return this.codeCounter_;
@@ -74,7 +75,7 @@ class CodeCounterController {
         if (this.codeCounter_ !== null) {
             this.codeCounter_.dispose();
             this.codeCounter_ = null;
-            console.log(`${EXTENSION_NAME}: dispose CodeCounter`);
+            console.log(`[${EXTENSION_NAME}] dispose CodeCounter`);
         }
     }
     private get isVisible() {
@@ -105,25 +106,25 @@ class CodeCounterController {
         if (dir !== undefined) {
             this.codeCounter.countLinesInDirectory(dir);
         } else {
-            vscode.window.showErrorMessage(`${EXTENSION_NAME}: No open workspace`);
+            vscode.window.showErrorMessage(`[${EXTENSION_NAME}] No open workspace`);
         }
     }
     private onDidChangeActiveTextEditor(e: vscode.TextEditor|undefined) {
         if ((this.codeCounter_ !== null)) {
-            console.log(`${EXTENSION_NAME}: onDidChangeActiveTextEditor()`);
+            console.log(`[${EXTENSION_NAME}] onDidChangeActiveTextEditor()`);
             this.codeCounter.countFile((e !== undefined) ? e.document : undefined);
         }
     }
     private onDidChangeTextDocument(e: vscode.TextDocumentChangeEvent) {
         if (this.codeCounter_ !== null) {
-            console.log(`${EXTENSION_NAME}: onDidChangeTextDocument()`);
+            console.log(`[${EXTENSION_NAME}] onDidChangeTextDocument()`);
             this.codeCounter.countFile(e.document);
         }
     }
     private onDidChangeConfiguration() {
         const newConf = vscode.workspace.getConfiguration(CONFIGURATION_SECTION);
         if (JSON.stringify(this.configuration) !== JSON.stringify(newConf)) {
-            console.log(`${EXTENSION_NAME}: onDidChangeConfiguration()`);
+            console.log(`[${EXTENSION_NAME}] onDidChangeConfiguration()`);
             this.configuration = newConf;
             this.disposeCodeCounter();
             if (this.isVisible) {
@@ -165,14 +166,28 @@ class CodeCounter {
         this.outputChannel.appendLine(text);
     }
     public countLinesInDirectory(dir: string) {
-        console.log(`${EXTENSION_NAME}: countLinesInDirectory : ${dir}`);
-        const confFiles = vscode.workspace.getConfiguration("files");
+        console.log(`[${EXTENSION_NAME}] countLinesInDirectory : ${dir}`);
+        const confFiles = vscode.workspace.getConfiguration("files", null);
         const workspaceDir = vscode.workspace.rootPath || `.${path.sep}`;
         const outputDir = this.getConf('outputDirectory', '.VSCodeCounter');
         const outputDirPath = path.resolve(workspaceDir, outputDir);
         const ignoreUnsupportedFile = this.getConf('ignoreUnsupportedFile', true);
         const includes = this.getConf<Array<string>>('include', ['**/*']);
         const excludes = this.getConf<Array<string>>('exclude', []);
+        // const associations = confFiles.get<Map<string,any>>('associations', new Map<string,any>());
+        const findLineCounter = (() => {
+            const associations = [...new Map<string, string>(Object.entries(confFiles.get<object>('associations', {})))];
+            console.log(`[${EXTENSION_NAME}] associations : ${associations.length}\n[${associations.join("],[")}]`);
+            return (filepath: string) => {
+                const lineCounter = this.lineCounterTable.getByPath(filepath);
+                if (lineCounter !== undefined) {
+                    return lineCounter; 
+                }
+                const patType = associations.find(([pattern, ]) => minimatch(filepath, pattern, {matchBase: true}));
+                //console.log(`## ${filepath}: ${patType}`);
+                return (patType !== undefined) ? this.lineCounterTable.getByName(patType[1]) : undefined;
+            };
+        })();
 
         excludes.push(outputDir);
         if (this.getConf('useFilesExclude', true)) {
@@ -181,16 +196,16 @@ class CodeCounter {
         excludes.push('.gitignore');
         const encoding = confFiles.get('encoding', 'utf8');
         const endOfLine = this.getConf('endOfLine', '\n');
-        console.log(`${EXTENSION_NAME}: includes : ${includes.join(',')}`);
-        console.log(`${EXTENSION_NAME}: excludes : ${excludes.join(',')}`);
+        // console.log(`[${EXTENSION_NAME}] includes : ${includes.join(',')}`);
+        // console.log(`[${EXTENSION_NAME}] excludes : ${excludes.join(',')}`);
 
         vscode.workspace.findFiles(`{${includes.join(',')}}`, `{${excludes.join(',')}}`).then((files: vscode.Uri[]) => {
             new Promise((resolve: (p: string[])=> void, reject: (reason: string) => void) => {
                 const filePathes = files.map(uri => uri.fsPath).filter(p => !path.relative(dir, p).startsWith('..'));
-                console.log(`${EXTENSION_NAME}: target : ${filePathes.length} files`);
+                console.log(`[${EXTENSION_NAME}] target : ${filePathes.length} files`);
                 if (this.getConf('useGitignore', true)) {
                     vscode.workspace.findFiles('**/.gitignore', '').then((gitignoreFiles: vscode.Uri[]) => {
-                        gitignoreFiles.forEach(f => console.log(`${EXTENSION_NAME}: use gitignore : ${f.fsPath}`));
+                        gitignoreFiles.forEach(f => console.log(`[${EXTENSION_NAME}] use gitignore : ${f.fsPath}`));
                         const gitignores = new Gitignore('').merge(...gitignoreFiles.map(uri => uri.fsPath).sort().map(p => new Gitignore(fs.readFileSync(p, 'utf8'), path.dirname(p))));
                         resolve(filePathes.filter(p => gitignores.excludes(p)));
                     });
@@ -198,7 +213,7 @@ class CodeCounter {
                     resolve(filePathes);
                 }
             }).then((filePathes: string[]) => {
-                console.log(`${EXTENSION_NAME}: target : ${filePathes.length} files`);
+                console.log(`[${EXTENSION_NAME}] target : ${filePathes.length} files`);
                 return new Promise((resolve: (value: ResultTable)=> void, reject: (reason: string) => void) => {
                     const results = new ResultTable(dir, this.getConf('printNumberWithCommas', true) ? toStringWithCommas : (obj:any) => obj.toString() );
                     if (filePathes.length <= 0) {
@@ -206,7 +221,7 @@ class CodeCounter {
                     }
                     let fileCount = 0;
                     filePathes.forEach(filepath => {
-                        const lineCounter = this.lineCounterTable.getByPath(filepath);
+                        const lineCounter = findLineCounter(filepath);
                         if (lineCounter !== undefined) {
                             fs.readFile(filepath, encoding, (err, data) => {
                                 ++fileCount;
@@ -232,13 +247,13 @@ class CodeCounter {
                     });
                 });
             }).then((results: ResultTable) => {
-                console.log(`${EXTENSION_NAME}: count ${results.length} files`);
+                console.log(`[${EXTENSION_NAME}] count ${results.length} files`);
                 if (results.length <= 0) {
-                    vscode.window.showErrorMessage(`${EXTENSION_NAME}: There was no target file.`);
+                    vscode.window.showErrorMessage(`[${EXTENSION_NAME}] There was no target file.`);
                     return;
                 }
                 const previewType = this.getConf<string>('outputPreviewType', '');
-                console.log(`${EXTENSION_NAME}: OutputDir : ${outputDirPath}`);
+                console.log(`[${EXTENSION_NAME}] OutputDir : ${outputDirPath}`);
                 makeDirectories(outputDirPath);
                 if (this.getConf('outputAsText', true)) {
                     const promise = writeTextFile(path.join(outputDirPath, 'results.txt'), results.toTextLines().join(endOfLine));
@@ -266,14 +281,14 @@ class CodeCounter {
                     }
                 }
             }).catch((reason: string) => {
-                vscode.window.showErrorMessage(`${EXTENSION_NAME}: Error has occurred.`, reason);
+                vscode.window.showErrorMessage(`[${EXTENSION_NAME}] Error has occurred.`, reason);
             });
         });
     }
     private countFile_(doc: vscode.TextDocument|undefined) {
         if (doc !== undefined) {
             const lineCounter = this.lineCounterTable.getByName(doc.languageId) || this.lineCounterTable.getByPath(doc.uri.fsPath);
-            console.log(`${EXTENSION_NAME}: ${path.basename(doc.uri.fsPath)}: ${JSON.stringify(lineCounter)}`);
+            console.log(`[${EXTENSION_NAME}] ${path.basename(doc.uri.fsPath)}: ${JSON.stringify(lineCounter)}`);
             if (lineCounter !== undefined) {
                 const result = lineCounter.count(doc.getText());
                 // return `Code:${result.code} Comment:${result.comment} Blank:${result.blank} Total:${result.code+result.comment+result.blank}`;
@@ -605,7 +620,7 @@ function makeDirectories(dirpath: string) {
     }
 }
 function showTextFile(outputFilename: string) {
-    console.log(`${EXTENSION_NAME}: showTextFile : ${outputFilename}`);
+    console.log(`[${EXTENSION_NAME}] showTextFile : ${outputFilename}`);
     return new Promise((resolve: (editor: vscode.TextEditor)=> void, reject: (err: any) => void) => {
         vscode.workspace.openTextDocument(outputFilename)
         .then((doc) => {
@@ -620,7 +635,7 @@ function showTextFile(outputFilename: string) {
     });
 }
 function writeTextFile(outputFilename: string, text: string) {
-    console.log(`${EXTENSION_NAME}: writeTextFile : ${outputFilename} ${text.length}B`);
+    console.log(`[${EXTENSION_NAME}] writeTextFile : ${outputFilename} ${text.length}B`);
     return new Promise((resolve: (filename: string)=> void, reject: (err: NodeJS.ErrnoException) => void) => {
         fs.writeFile(outputFilename, text, err => {
             if (err) {
