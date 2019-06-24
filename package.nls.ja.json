@@ -14,6 +14,7 @@
   "configuration.outputAsText.description": "結果をテキストファイルで出力する.",
   "configuration.outputAsCSV.description": "結果をCSVファイルで出力する.",
   "configuration.outputAsMarkdown.description": "結果をMarkdown形式で出力する.",
+  "configuration.outputMarkdownSeparately.description": "Markdown結果を概要と詳細で分けて出力する.",
   "configuration.outputPreviewType.description": "カウント後にプレビューする出力ファイルの種類.",
   "configuration.blockComment.description": "ブロックコメント(ヒアドキュメント)の先頭と末尾を示すパターンを定義する.\n複数行にまたがるような文字列を判別するために使用する.この内部に現れたコメント行はコード行とみなされる.\n -types: 言語の種類. languageId(例 cpp, csharp, javascript...), エイリアス名(例 C++, C#, JavaScript), 拡張子(eg .cpp, .cs, .js) のいずれかで指定する.\n - patterns: コメント範囲を示すパターン.",
   "configuration.blockComment.types.description": "言語の種類.\n languageId(例 cpp, csharp, javascript...), エイリアス名(例 C++, C#, JavaScript), 拡張子(eg .cpp, .cs, .js) のいずれかで指定する.",

@@ -6,6 +6,13 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [Unreleased]
 
 
+## [1.2.0]
+
+### Changed
+
+- Output Markdown summary and details separately. (selectable by settings.json)
+
+
 ## [1.1.1]
 
 ### Added

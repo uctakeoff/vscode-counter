@@ -14,6 +14,7 @@
   "configuration.outputAsText.description": "Whether to output the result as a text file.",
   "configuration.outputAsCSV.description": "Whether to output the result as a CSV file.",
   "configuration.outputAsMarkdown.description": "Whether to output the result as a Markdown file.",
+  "configuration.outputMarkdownSeparately.description": "Whether to output summary and details separately.",
   "configuration.outputPreviewType.description": "Type of output file to preview after counting.",
   "configuration.blockComment.description": "Define patterns indicating the beginning and end of the block document(here document).\nIt is used to distinguish between strings that span multiple lines, and the comment lines displayed in it are considered code lines.\n - types: Language types. Allows you to specify languageId(eg cpp, csharp, javascript...), aliases(eg C++, C#, JavaScript), and extensions(eg .cpp, .cs, .js).\n - patterns: patterns indicating the range of comments.",
   "configuration.blockComment.types.description": "Language types. \nAllows you to specify languageId(eg cpp, csharp, javascript...), aliases(eg C++, C#, JavaScript), and extensions(eg .cpp, .cs, .js).",

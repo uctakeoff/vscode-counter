@@ -272,7 +272,38 @@ class CodeCounter {
                     }
                 }
                 if (this.getConf('outputAsMarkdown', true)) {
-                    const promise = writeTextFile(path.join(outputDirPath, 'results.md'), results.toMarkdownLines().join(endOfLine));
+                    const promise = this.getConf('outputMarkdownSeparately.', true)
+                        ? writeTextFile(path.join(outputDirPath, 'details.md'), [
+                                '# Details',
+                                '',
+                                ...results.toMarkdownHeaderLines(),
+                                '',
+                                `[summary](results.md)`,
+                                '',
+                                ...results.toMarkdownDetailsLines(),
+                                '',
+                                `[summary](results.md)`,
+                                ].join(endOfLine)
+                            ).then(ofilename => writeTextFile(path.join(outputDirPath, 'results.md'), [
+                                '# Summary',
+                                '',
+                                ...results.toMarkdownHeaderLines(),
+                                '',
+                                `[details](details.md)`,
+                                '',
+                                ...results.toMarkdownSummaryLines(),
+                                '',
+                                `[details](details.md)`
+                                ].join(endOfLine))
+                            )
+                        : writeTextFile(path.join(outputDirPath, 'results.md'), [
+                                ...results.toMarkdownHeaderLines(),
+                                '',
+                                ...results.toMarkdownSummaryLines(),
+                                '',
+                                ...results.toMarkdownDetailsLines(),
+                                ].join(endOfLine)
+                            );
                     if (previewType === 'markdown') {
                         promise.then(ofilename => vscode.commands.executeCommand("markdown.showPreview", vscode.Uri.file(ofilename)))
                             .catch(err => console.error(err));
@@ -436,6 +467,25 @@ class Statistics {
         return this;
     }
 }
+class MarkdownTableFormatter {
+    private dir: string;
+    private valueToString: (obj:any) => string;
+    private columnInfo: {title:string, format:string}[];
+    constructor(dir:string, valueToString: (obj:any) => string, ...columnInfo: {title:string, format:string}[]) {
+        this.dir = dir;
+        this.valueToString = valueToString;
+        this.columnInfo = columnInfo;
+    }
+    get lineSeparator() {
+        return '| ' + this.columnInfo.map(i => (i.format === 'number') ? '---:' : ':---').join(' | ') + ' |';
+    }
+    get headerLines() {
+        return ['| ' + this.columnInfo.map(i => i.title).join(' | ') + ' |', this.lineSeparator];
+    }
+    public line(...data: (string|number|boolean)[]) {
+        return '| ' + data.map((d, i) => (typeof d !== 'string') ? this.valueToString(d) : (this.columnInfo[i].format === 'uri') ? `[${d}](${vscode.Uri.file(path.join(this.dir, d))})` : d).join(' | ') + ' |';
+    }
+}
 class ResultTable {
     private targetDirPath: string;
     private fileResults: Result[] = [];
@@ -483,10 +533,11 @@ class ResultTable {
         ];
     }
     public toTextLines() {
-        const valueToString = this.valueToString;
-        class Formatter {
+        class TextTableFormatter {
+            private valueToString: (obj:any) => string;
             private columnInfo: {title:string, width:number}[];
-            constructor(...columnInfo: {title:string, width:number}[]) {
+            constructor(valueToString: (obj:any) => string, ...columnInfo: {title:string, width:number}[]) {
+                this.valueToString = valueToString;
                 this.columnInfo = columnInfo;
                 for (const info of this.columnInfo) {
                     info.width = Math.max(info.title.length, info.width);
@@ -506,24 +557,24 @@ class ResultTable {
                     if (typeof d === 'string') {
                         return d.padEnd(this.columnInfo[i].width);
                     } else {
-                        return valueToString(d).padStart(this.columnInfo[i].width);
+                        return this.valueToString(d).padStart(this.columnInfo[i].width);
                     }
                 }).join(' | ') + ' |';
             }
         }
         const maxNamelen = Math.max(...this.fileResults.map(res => res.filename.length));
         const maxLanglen = Math.max(...[...this.langResultTable.keys()].map(l => l.length));
-        const resultFormat = new Formatter({title:'filename', width:maxNamelen}, {title:'language', width:maxLanglen}, 
+        const resultFormat = new TextTableFormatter(this.valueToString, {title:'filename', width:maxNamelen}, {title:'language', width:maxLanglen}, 
             {title:'code', width:10}, {title:'comment', width:10}, {title:'blank', width:10}, {title:'total', width:10});
-        const dirFormat = new Formatter({title:'path', width:maxNamelen}, {title:'files', width:10}, 
+        const dirFormat = new TextTableFormatter(this.valueToString, {title:'path', width:maxNamelen}, {title:'files', width:10}, 
             {title:'code', width:10}, {title:'comment', width:10}, {title:'blank', width:10}, {title:'total', width:10});
-        const langFormat = new Formatter({title:'language', width:maxLanglen}, {title:'files', width:10}, 
+        const langFormat = new TextTableFormatter(this.valueToString, {title:'language', width:maxLanglen}, {title:'files', width:10}, 
             {title:'code', width:10}, {title:'comment', width:10}, {title:'blank', width:10}, {title:'total', width:10});
         return [
             // '='.repeat(resultFormat.headerLines[0].length),
             // EXTENSION_NAME,
-            `Directory : ${this.targetDirPath}`,
             `Date : ${dateToString(new Date())}`,
+            `Directory : ${this.targetDirPath}`,
             // `Total : code: ${this.total.code}, comment : ${this.total.comment}, blank : ${this.total.blank}, all ${this.total.total} lines`,
             `Total : ${this.total.files} files,  ${this.total.code} codes, ${this.total.comment} comments, ${this.total.blank} blanks, all ${this.total.total} lines`,
             '',
@@ -547,38 +598,34 @@ class ResultTable {
             ...resultFormat.footerLines, 
         ];
     }
-    public toMarkdownLines() {
-        const dir = this.targetDirPath;
-        const valueToString = this.valueToString;
-        class MarkdownFormatter {
-            private columnInfo: {title:string, format:string}[];
-            constructor(...columnInfo: {title:string, format:string}[]) {
-                this.columnInfo = columnInfo;
-            }
-            get lineSeparator() {
-                return '| ' + this.columnInfo.map(i => (i.format === 'number') ? '---:' : ':---').join(' | ') + ' |';
-            }
-            get headerLines() {
-                return ['| ' + this.columnInfo.map(i => i.title).join(' | ') + ' |', this.lineSeparator];
-            }
-            public line(...data: (string|number|boolean)[]) {
-                return '| ' + data.map((d, i) => (typeof d !== 'string') ? valueToString(d) : (this.columnInfo[i].format === 'uri') ? `[${d}](${vscode.Uri.file(path.join(dir, d))})` : d).join(' | ') + ' |';
-            }
-        }
-        const resultFormat = new MarkdownFormatter({title:'filename', format:'uri'}, {title:'language', format:'string'}, 
-            {title:'code', format:'number'}, {title:'comment', format:'number'}, {title:'blank', format:'number'}, {title:'total', format:'number'});
-        const dirFormat = new MarkdownFormatter({title:'path', format:'string'}, {title:'files', format:'number'}, 
-            {title:'code', format:'number'}, {title:'comment', format:'number'}, {title:'blank', format:'number'}, {title:'total', format:'number'});
-        const langFormat = new MarkdownFormatter({title:'language', format:'string'}, {title:'files', format:'number'}, 
-            {title:'code', format:'number'}, {title:'comment', format:'number'}, {title:'blank', format:'number'}, {title:'total', format:'number'});
-    
+
+    public toMarkdownHeaderLines() {
         return [
-            `# ${dir}`,
-            '',
             `Date : ${dateToString(new Date())}`,
             '',
-            `Total : ${this.total.files} files,  ${this.total.code} codes, ${this.total.comment} comments, ${this.total.blank} blanks, all ${this.total.total} lines`,
+            `Directory ${this.targetDirPath}`,
             '',
+            `Total : ${this.total.files} files,  ${this.total.code} codes, ${this.total.comment} comments, ${this.total.blank} blanks, all ${this.total.total} lines`,
+        ];
+    }
+    public toMarkdownSummaryLines() {
+        const dirFormat = new MarkdownTableFormatter(this.targetDirPath, this.valueToString, 
+            {title:'path', format:'string'}, 
+            {title:'files', format:'number'}, 
+            {title:'code', format:'number'}, 
+            {title:'comment', format:'number'}, 
+            {title:'blank', format:'number'}, 
+            {title:'total', format:'number'}
+        );
+        const langFormat = new MarkdownTableFormatter(this.targetDirPath, this.valueToString, 
+            {title:'language', format:'string'}, 
+            {title:'files', format:'number'}, 
+            {title:'code', format:'number'}, 
+            {title:'comment', format:'number'}, 
+            {title:'blank', format:'number'}, 
+            {title:'total', format:'number'}
+        );
+        return [
             '## Languages',
             ...langFormat.headerLines, 
             ...[...this.langResultTable.values()].sort((a,b) => b.code - a.code)
@@ -589,7 +636,18 @@ class ResultTable {
             // ...[...dirResultTable.values()].sort((a,b) => b.code - a.code)
             ...[...this.dirResultTable.values()].sort((a,b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
                 .map(v => dirFormat.line(v.name, v.files, v.code, v.comment, v.blank, v.total)),
-            '',
+        ];
+    }
+    public toMarkdownDetailsLines() {
+        const resultFormat = new MarkdownTableFormatter(this.targetDirPath, this.valueToString, 
+            {title:'filename', format:'uri'}, 
+            {title:'language', format:'string'}, 
+            {title:'code', format:'number'}, 
+            {title:'comment', format:'number'}, 
+            {title:'blank', format:'number'}, 
+            {title:'total', format:'number'}
+        );
+        return [
             '## Files',
             ...resultFormat.headerLines, 
             ...this.fileResults.sort((a,b) => a.filename < b.filename ? -1 : a.filename > b.filename ? 1 : 0)
