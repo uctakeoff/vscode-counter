@@ -6,6 +6,12 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [Unreleased]
 
 
+## [1.2.1]
+
+### Fixed
+
+- Update some modules.
+
 ## [1.2.0]
 
 ### Changed

@@ -1,7 +1,7 @@
 {
   "name": "vscode-counter",
   "displayName": "VSCode Counter",
-  "description": "counts blank lines, comment lines, and physical lines of source code in many programming languages.",
+  "description": "Count lines of code in many programming languages.",
   "version": "1.2.1",
   "publisher": "uctakeoff",
   "author": {
