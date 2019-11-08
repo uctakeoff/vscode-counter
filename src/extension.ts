@@ -110,12 +110,17 @@ class CodeCounterController {
         }
     }
     public countInWorkspace() {
-        const uris = workspaceFolders().map((folder) => folder.uri);
-        uris.forEach((p) => log(p.fsPath));
-        if (uris.length > 0) {
-            this.codeCounter.countLinesInDirectory(uris[0]);
-        } else {
+        const folders = workspaceFolders();
+        if (folders.length <= 0) {
             vscode.window.showErrorMessage(`[${EXTENSION_NAME}] No open workspace`);
+        } else if (folders.length == 1) {
+            this.codeCounter.countLinesInDirectory(folders[0].uri);
+        } else {
+            vscode.window.showWorkspaceFolderPick().then((folder) => {
+                if (folder) {
+                    this.codeCounter.countLinesInDirectory(folder.uri);
+                }
+            });
         }
     }
     private onDidChangeWorkspaceFolders(e: vscode.WorkspaceFoldersChangeEvent) {
@@ -191,13 +196,12 @@ class CodeCounter {
         const confFiles = vscode.workspace.getConfiguration("files", null);
         const ignoreUnsupportedFile = this.getConf('ignoreUnsupportedFile', true);
         const encoding = confFiles.get('encoding', 'utf8');
-        const endOfLine = this.getConf('endOfLine', '\n');
         const includes = this.getConf<Array<string>>('include', ['**/*']);
         const excludes = this.getConf<Array<string>>('exclude', []);
-        excludes.push(path.relative(dir, this.outputDirPath));
         if (this.getConf('useFilesExclude', true)) {
             excludes.push(...Object.keys(confFiles.get<object>('exclude', {})));
         }
+        excludes.push(path.relative(dir, this.outputDirPath));
         log(`includes : "${includes.join('", "')}"`);
         log(`excludes : "${excludes.join('", "')}"`);
 
@@ -250,73 +254,77 @@ class CodeCounter {
                 });
             });
         }).then((results: ResultTable) => {
-            log(`count ${results.length} files`);
-            if (results.length <= 0) {
-                vscode.window.showErrorMessage(`[${EXTENSION_NAME}] There was no target file.`);
-                return;
-            }
-            const previewType = this.getConf<string>('outputPreviewType', '');
-            log(`OutputDir : ${this.outputDirPath}`);
-            makeDirectories(this.outputDirPath);
-            if (this.getConf('outputAsText', true)) {
-                const promise = writeTextFile(path.join(this.outputDirPath, 'results.txt'), results.toTextLines().join(endOfLine));
-                if (previewType === 'text') {
-                    promise.then(ofilename => showTextFile(ofilename)).catch(err => console.error(err));
-                } else {
-                    promise.catch(err => console.error(err));
-                }
-            }
-            if (this.getConf('outputAsCSV', true)) {
-                const promise = writeTextFile(path.join(this.outputDirPath, 'results.csv'), results.toCSVLines().join(endOfLine));
-                if (previewType === 'csv') {
-                    promise.then(ofilename => showTextFile(ofilename)).catch(err => console.error(err));
-                } else {
-                    promise.catch(err => console.error(err));
-                }
-            }
-            if (this.getConf('outputAsMarkdown', true)) {
-                const promise = this.getConf('outputMarkdownSeparately.', true)
-                    ? writeTextFile(path.join(this.outputDirPath, 'details.md'), [
-                            '# Details',
-                            '',
-                            ...results.toMarkdownHeaderLines(),
-                            '',
-                            `[summary](results.md)`,
-                            '',
-                            ...results.toMarkdownDetailsLines(),
-                            '',
-                            `[summary](results.md)`,
-                            ].join(endOfLine)
-                        ).then(ofilename => writeTextFile(path.join(this.outputDirPath, 'results.md'), [
-                            '# Summary',
-                            '',
-                            ...results.toMarkdownHeaderLines(),
-                            '',
-                            `[details](details.md)`,
-                            '',
-                            ...results.toMarkdownSummaryLines(),
-                            '',
-                            `[details](details.md)`
-                            ].join(endOfLine))
-                        )
-                    : writeTextFile(path.join(this.outputDirPath, 'results.md'), [
-                            ...results.toMarkdownHeaderLines(),
-                            '',
-                            ...results.toMarkdownSummaryLines(),
-                            '',
-                            ...results.toMarkdownDetailsLines(),
-                            ].join(endOfLine)
-                        );
-                if (previewType === 'markdown') {
-                    promise.then(ofilename => vscode.commands.executeCommand("markdown.showPreview", vscode.Uri.file(ofilename)))
-                        .catch(err => console.error(err));
-                } else {
-                    promise.catch(err => console.error(err));
-                }
-            }
+            this.outputResults(results);
         }).catch((reason: string) => {
             vscode.window.showErrorMessage(`[${EXTENSION_NAME}] Error has occurred.`, reason);
         });
+    }
+    private outputResults(results: ResultTable) {
+        const endOfLine = this.getConf('endOfLine', '\n');
+        log(`count ${results.length} files`);
+        if (results.length <= 0) {
+            vscode.window.showErrorMessage(`[${EXTENSION_NAME}] There was no target file.`);
+            return;
+        }
+        const previewType = this.getConf<string>('outputPreviewType', '');
+        log(`OutputDir : ${this.outputDirPath}`);
+        makeDirectories(this.outputDirPath);
+        if (this.getConf('outputAsText', true)) {
+            const promise = writeTextFile(path.join(this.outputDirPath, 'results.txt'), results.toTextLines().join(endOfLine));
+            if (previewType === 'text') {
+                promise.then(ofilename => showTextFile(ofilename)).catch(err => console.error(err));
+            } else {
+                promise.catch(err => console.error(err));
+            }
+        }
+        if (this.getConf('outputAsCSV', true)) {
+            const promise = writeTextFile(path.join(this.outputDirPath, 'results.csv'), results.toCSVLines().join(endOfLine));
+            if (previewType === 'csv') {
+                promise.then(ofilename => showTextFile(ofilename)).catch(err => console.error(err));
+            } else {
+                promise.catch(err => console.error(err));
+            }
+        }
+        if (this.getConf('outputAsMarkdown', true)) {
+            const promise = this.getConf('outputMarkdownSeparately.', true)
+                ? writeTextFile(path.join(this.outputDirPath, 'details.md'), [
+                        '# Details',
+                        '',
+                        ...results.toMarkdownHeaderLines(),
+                        '',
+                        `[summary](results.md)`,
+                        '',
+                        ...results.toMarkdownDetailsLines(),
+                        '',
+                        `[summary](results.md)`,
+                        ].join(endOfLine)
+                    ).then(ofilename => writeTextFile(path.join(this.outputDirPath, 'results.md'), [
+                        '# Summary',
+                        '',
+                        ...results.toMarkdownHeaderLines(),
+                        '',
+                        `[details](details.md)`,
+                        '',
+                        ...results.toMarkdownSummaryLines(),
+                        '',
+                        `[details](details.md)`
+                        ].join(endOfLine))
+                    )
+                : writeTextFile(path.join(this.outputDirPath, 'results.md'), [
+                        ...results.toMarkdownHeaderLines(),
+                        '',
+                        ...results.toMarkdownSummaryLines(),
+                        '',
+                        ...results.toMarkdownDetailsLines(),
+                        ].join(endOfLine)
+                    );
+            if (previewType === 'markdown') {
+                promise.then(ofilename => vscode.commands.executeCommand("markdown.showPreview", vscode.Uri.file(ofilename)))
+                    .catch(err => console.error(err));
+            } else {
+                promise.catch(err => console.error(err));
+            }
+        }
     }
     private countFile_(doc: vscode.TextDocument|undefined) {
         if (doc !== undefined) {
