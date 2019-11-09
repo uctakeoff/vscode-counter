@@ -1,0 +1,69 @@
+// Place your settings in this file to overwrite default and user settings.
+{
+    "files.exclude": {
+        "out": false // set this to true to hide the "out" folder with the compiled JS files
+    },
+    "search.exclude": {
+        "out": true // set this to false to include "out" folder in search results
+    },
+    // Turn off tsc task auto detection since we have the necessary tasks as npm scripts
+    "typescript.tsc.autoDetect": "off",
+    "git.ignoredRepositories": [
+        "work/*"
+    ],
+    "VSCodeCounter.showInStatusBar": false,
+    "files.associations": {
+        "*.vbhtml": "html",
+        "*.cpp": "c",
+        "*.hpp": "cpp",
+        "vector": "cpp",
+        "initializer_list": "cpp",
+        "xstring": "cpp",
+        "xutility": "cpp",
+        "type_traits": "cpp",
+        "xiosbase": "c",
+        "xlocale": "c",
+        "valarray": "cpp",
+        "algorithm": "cpp",
+        "array": "cpp",
+        "cmath": "cpp",
+        "complex": "cpp",
+        "cstddef": "cpp",
+        "cstdint": "cpp",
+        "cstdio": "cpp",
+        "cstdlib": "cpp",
+        "cstring": "cpp",
+        "cwchar": "cpp",
+        "exception": "cpp",
+        "functional": "cpp",
+        "ios": "cpp",
+        "iosfwd": "cpp",
+        "iostream": "cpp",
+        "istream": "cpp",
+        "iterator": "cpp",
+        "limits": "cpp",
+        "list": "cpp",
+        "memory": "cpp",
+        "new": "cpp",
+        "numeric": "cpp",
+        "ostream": "cpp",
+        "sstream": "cpp",
+        "stdexcept": "cpp",
+        "streambuf": "cpp",
+        "string": "cpp",
+        "system_error": "cpp",
+        "tuple": "cpp",
+        "typeinfo": "cpp",
+        "unordered_map": "cpp",
+        "utility": "cpp",
+        "xfacet": "cpp",
+        "xhash": "cpp",
+        "xlocinfo": "cpp",
+        "xlocnum": "cpp",
+        "xmemory": "cpp",
+        "xmemory0": "cpp",
+        "xstddef": "cpp",
+        "xtr1common": "cpp",
+        "deque": "cpp"
+    }
+}
