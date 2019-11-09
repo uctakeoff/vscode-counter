@@ -522,8 +522,8 @@ class ResultTable {
         results
         .filter((result) => result.code >= 0)
         .forEach((result) => {
-            let parent = path.dirname(result.filename);
-            while (parent.length >= this.targetDirPath.length) {
+            let parent = path.dirname(path.relative(dirpath, result.filename));
+            while (parent.length >= 0) {
                 getOrSetFirst(this.dirResultTable, parent, () => new Statistics(parent)).append(result);
                 const p = path.dirname(parent);
                 if (p === parent) {

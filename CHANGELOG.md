@@ -6,6 +6,13 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [Unreleased]
 
 
+## [1.3.0]
+
+### Added
+
+- Support Multi-root Workspaces. (Selection type)
+
+
 ## [1.2.1]
 
 ### Fixed
