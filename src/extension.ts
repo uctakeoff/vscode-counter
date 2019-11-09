@@ -21,7 +21,7 @@ const toStringWithCommas = (obj: any) => {
         return obj.toString();
     }
 };
-const log = (message: string) => console.log(`[${EXTENSION_NAME}] ${message}`)
+const log = (message: string) => console.log(`[${EXTENSION_NAME}] ${message}`);
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -47,7 +47,7 @@ export function deactivate() {
 const workspaceFolders = (): vscode.WorkspaceFolder[] => {
     const folders = vscode.workspace.workspaceFolders;
     return !folders ? [] : folders;
-}
+};
 
 class CodeCounterController {
     private configuration: vscode.WorkspaceConfiguration = vscode.workspace.getConfiguration(CONFIGURATION_SECTION);
@@ -76,8 +76,7 @@ class CodeCounterController {
     }
     private get codeCounter() {
         if (this.codeCounter_ === null) {
-            const outputDirPath = path.resolve(this.primaryWorkspaceDirectory, this.configuration.get('outputDirectory', '.VSCodeCounter'));
-            this.codeCounter_ = new CodeCounter(this.configuration, outputDirPath);
+            this.codeCounter_ = new CodeCounter(this.configuration);
         }
         return this.codeCounter_;
     }
@@ -95,7 +94,7 @@ class CodeCounterController {
     }
     public countInDirectory(targetDir: vscode.Uri|undefined) {
         if (targetDir !== undefined) {
-            this.codeCounter.countLinesInDirectory(targetDir);
+            this.codeCounter.countLinesInDirectory(targetDir, this.primaryWorkspaceDirectory);
         } else {
             const option = {
                 value : this.primaryWorkspaceDirectory,
@@ -104,7 +103,7 @@ class CodeCounterController {
             };
             vscode.window.showInputBox(option).then(dirPath => {
                 if (dirPath !== undefined) {
-                    this.codeCounter.countLinesInDirectory(vscode.Uri.file(dirPath));
+                    this.codeCounter.countLinesInDirectory(vscode.Uri.file(dirPath), this.primaryWorkspaceDirectory);
                 }
             });
         }
@@ -113,12 +112,12 @@ class CodeCounterController {
         const folders = workspaceFolders();
         if (folders.length <= 0) {
             vscode.window.showErrorMessage(`[${EXTENSION_NAME}] No open workspace`);
-        } else if (folders.length == 1) {
-            this.codeCounter.countLinesInDirectory(folders[0].uri);
+        } else if (folders.length === 1) {
+            this.codeCounter.countLinesInDirectory(folders[0].uri, folders[0].uri.fsPath);
         } else {
             vscode.window.showWorkspaceFolderPick().then((folder) => {
                 if (folder) {
-                    this.codeCounter.countLinesInDirectory(folder.uri);
+                    this.codeCounter.countLinesInDirectory(folder.uri, folder.uri.fsPath);
                 }
             });
         }
@@ -158,15 +157,13 @@ class CodeCounter {
     private outputChannel: vscode.OutputChannel|null = null;
     private statusBarItem: vscode.StatusBarItem|null = null;
     private configuration: vscode.WorkspaceConfiguration;
-    private outputDirPath: string;
     private lineCounterTable: LineCounterTable;
 
-    constructor(configuration: vscode.WorkspaceConfiguration, outputDirPath: string) {
-        log(`create CodeCounter : output dir : ${outputDirPath}`);
+    constructor(configuration: vscode.WorkspaceConfiguration) {
+        log(`create CodeCounter`);
         this.configuration = configuration;
-        this.outputDirPath = outputDirPath;
         const confFiles = vscode.workspace.getConfiguration("files", null);
-        this.lineCounterTable = new LineCounterTable(this.configuration, confFiles.get<object>('associations', {}));
+        this.lineCounterTable = new LineCounterTable(this.configuration, [...Object.entries(confFiles.get<object>('associations', {}))]);
         if (this.getConf('showInStatusBar', false)) {
             this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
         }
@@ -190,145 +187,80 @@ class CodeCounter {
         this.outputChannel.show();
         this.outputChannel.appendLine(text);
     }
-    public countLinesInDirectory(uri: vscode.Uri) {
-        const dir = uri.fsPath;
-        log(`countLinesInDirectory : ${dir}`);
+    public countLinesInDirectory(uri: vscode.Uri, outputWorkingDirectory: string) {
+        const targetDir = uri.fsPath;
+        const outputDir = path.resolve(outputWorkingDirectory, this.getConf('outputDirectory', '.VSCodeCounter'));
+
+        log(`countLinesInDirectory : ${targetDir} , output dir: ${outputDir}`);
         const confFiles = vscode.workspace.getConfiguration("files", null);
-        const ignoreUnsupportedFile = this.getConf('ignoreUnsupportedFile', true);
         const encoding = confFiles.get('encoding', 'utf8');
         const includes = this.getConf<Array<string>>('include', ['**/*']);
         const excludes = this.getConf<Array<string>>('exclude', []);
         if (this.getConf('useFilesExclude', true)) {
             excludes.push(...Object.keys(confFiles.get<object>('exclude', {})));
         }
-        excludes.push(path.relative(dir, this.outputDirPath));
+        excludes.push(path.relative(targetDir, outputDir));
         log(`includes : "${includes.join('", "')}"`);
         log(`excludes : "${excludes.join('", "')}"`);
 
         new Promise((resolve: (p: string[])=> void, reject: (reason: string) => void) => {
             vscode.workspace.findFiles(`{${includes.join(',')}}`, `{${excludes.join(',')}}`).then((files: vscode.Uri[]) => {
-                const filePathes = files.map(uri => uri.fsPath).filter(p => !path.relative(dir, p).startsWith('..'));
-                log(`target : ${filePathes.length} files`);
+                const filePaths = files.map(uri => uri.fsPath).filter(p => !path.relative(targetDir, p).startsWith('..'));
+                log(`target : ${filePaths.length} files`);
                 if (this.getConf('useGitignore', true)) {
                     vscode.workspace.findFiles('**/.gitignore', '').then((gitignoreFiles: vscode.Uri[]) => {
                         gitignoreFiles.forEach(f => log(`use gitignore : ${f.fsPath}`));
                         const gitignores = new Gitignore('').merge(...gitignoreFiles.map(uri => uri.fsPath).sort().map(p => new Gitignore(fs.readFileSync(p, 'utf8'), path.dirname(p))));
-                        resolve(filePathes.filter(p => gitignores.excludes(p)));
+                        resolve(filePaths.filter(p => gitignores.excludes(p)));
                     });
                 } else {
-                    resolve(filePathes);
+                    resolve(filePaths);
                 }
             });
-        }).then((filePathes: string[]) => {
-            log(`target : ${filePathes.length} files`);
-            return new Promise((resolve: (value: ResultTable)=> void, reject: (reason: string) => void) => {
-                const results = new ResultTable(dir, this.getConf('printNumberWithCommas', true) ? toStringWithCommas : (obj:any) => obj.toString() );
-                if (filePathes.length <= 0) {
+        }).then((filePaths: string[]) => {
+            log(`target : ${filePaths.length} files`);
+            return new Promise((resolve: (value: Result[])=> void, reject: (reason: string) => void) => {
+                const results: Result[] = [];
+                if (filePaths.length <= 0) {
                     resolve(results);
                 }
+                const ignoreUnsupportedFile = this.getConf('ignoreUnsupportedFile', true);
                 let fileCount = 0;
-                filePathes.forEach(filepath => {
-                    const lineCounter = this.lineCounterTable.findLineCounter(filepath);
+                filePaths.forEach(filepath => {
+                    const lineCounter = this.lineCounterTable.getByPath(filepath);
                     if (lineCounter !== undefined) {
                         fs.readFile(filepath, encoding, (err, data) => {
                             ++fileCount;
                             if (err) {
                                 this.toOutputChannel(`"${filepath}" Read Error : ${err.message}.`);
-                                results.appendEmpty(filepath, '(Read Error)');
+                                results.push(new Result(filepath, '(Read Error)'));
                             } else {
-                                results.appendResult(filepath, lineCounter.languageId, lineCounter.count(data));
+                                results.push(new Result(filepath, lineCounter.languageId, lineCounter.count(data)));
                             }
-                            if (fileCount === filePathes.length) {
+                            if (fileCount === filePaths.length) {
                                 resolve(results);
                             }
                         });
                     } else {
                         if (!ignoreUnsupportedFile) {
-                            results.appendEmpty(filepath, '(Unsupported)');
+                            results.push(new Result(filepath, '(Unsupported)'));
                         }
                         ++fileCount;
-                        if (fileCount === filePathes.length) {
+                        if (fileCount === filePaths.length) {
                             resolve(results);
                         }
                     }
                 });
             });
-        }).then((results: ResultTable) => {
-            this.outputResults(results);
+        }).then((results: Result[]) => {
+            outputResults(targetDir, results, outputDir, this.configuration);
         }).catch((reason: string) => {
             vscode.window.showErrorMessage(`[${EXTENSION_NAME}] Error has occurred.`, reason);
         });
     }
-    private outputResults(results: ResultTable) {
-        const endOfLine = this.getConf('endOfLine', '\n');
-        log(`count ${results.length} files`);
-        if (results.length <= 0) {
-            vscode.window.showErrorMessage(`[${EXTENSION_NAME}] There was no target file.`);
-            return;
-        }
-        const previewType = this.getConf<string>('outputPreviewType', '');
-        log(`OutputDir : ${this.outputDirPath}`);
-        makeDirectories(this.outputDirPath);
-        if (this.getConf('outputAsText', true)) {
-            const promise = writeTextFile(path.join(this.outputDirPath, 'results.txt'), results.toTextLines().join(endOfLine));
-            if (previewType === 'text') {
-                promise.then(ofilename => showTextFile(ofilename)).catch(err => console.error(err));
-            } else {
-                promise.catch(err => console.error(err));
-            }
-        }
-        if (this.getConf('outputAsCSV', true)) {
-            const promise = writeTextFile(path.join(this.outputDirPath, 'results.csv'), results.toCSVLines().join(endOfLine));
-            if (previewType === 'csv') {
-                promise.then(ofilename => showTextFile(ofilename)).catch(err => console.error(err));
-            } else {
-                promise.catch(err => console.error(err));
-            }
-        }
-        if (this.getConf('outputAsMarkdown', true)) {
-            const promise = this.getConf('outputMarkdownSeparately.', true)
-                ? writeTextFile(path.join(this.outputDirPath, 'details.md'), [
-                        '# Details',
-                        '',
-                        ...results.toMarkdownHeaderLines(),
-                        '',
-                        `[summary](results.md)`,
-                        '',
-                        ...results.toMarkdownDetailsLines(),
-                        '',
-                        `[summary](results.md)`,
-                        ].join(endOfLine)
-                    ).then(ofilename => writeTextFile(path.join(this.outputDirPath, 'results.md'), [
-                        '# Summary',
-                        '',
-                        ...results.toMarkdownHeaderLines(),
-                        '',
-                        `[details](details.md)`,
-                        '',
-                        ...results.toMarkdownSummaryLines(),
-                        '',
-                        `[details](details.md)`
-                        ].join(endOfLine))
-                    )
-                : writeTextFile(path.join(this.outputDirPath, 'results.md'), [
-                        ...results.toMarkdownHeaderLines(),
-                        '',
-                        ...results.toMarkdownSummaryLines(),
-                        '',
-                        ...results.toMarkdownDetailsLines(),
-                        ].join(endOfLine)
-                    );
-            if (previewType === 'markdown') {
-                promise.then(ofilename => vscode.commands.executeCommand("markdown.showPreview", vscode.Uri.file(ofilename)))
-                    .catch(err => console.error(err));
-            } else {
-                promise.catch(err => console.error(err));
-            }
-        }
-    }
     private countFile_(doc: vscode.TextDocument|undefined) {
         if (doc !== undefined) {
-            const lineCounter = this.lineCounterTable.getByName(doc.languageId) || this.lineCounterTable.getByPath(doc.uri.fsPath);
+            const lineCounter = this.lineCounterTable.getById(doc.languageId) || this.lineCounterTable.getByPath(doc.uri.fsPath);
             log(`${path.basename(doc.uri.fsPath)}: ${JSON.stringify(lineCounter)}`);
             if (lineCounter !== undefined) {
                 const result = lineCounter.count(doc.getText());
@@ -362,12 +294,12 @@ class LineCounterTable {
     private filenameRules: Map<string, LineCounter>;
     private associations: [string, string][];
 
-    constructor(conf: vscode.WorkspaceConfiguration, associationsConf: object) {
+    constructor(conf: vscode.WorkspaceConfiguration, associations: [string, string][]) {
         this.langIdTable = new Map<string, LineCounter>();
         this.aliasTable = new Map<string, LineCounter>();
         this.fileextRules = new Map<string, LineCounter>();
         this.filenameRules = new Map<string, LineCounter>();
-        this.associations = [...new Map<string, string>(Object.entries(associationsConf))];
+        this.associations = associations;
         log(`associations : ${this.associations.length}\n[${this.associations.join("],[")}]`);
 
         const confJsonTable = new Map<string, object>();
@@ -407,8 +339,12 @@ class LineCounterTable {
             public patterns: string[][] = [];
         }
         conf.get< Array<BlockPattern> >('blockComment', []).forEach(patterns => {
-            patterns.types.forEach(t => {
-                this.addBlockStringRule(t, ...patterns.patterns.map(pat => { return {begin: pat[0], end: pat[1]}; }));
+            patterns.types.forEach(id => {
+                const lineCounter = this.getById(id) || this.getByPath(id);
+                if (lineCounter) {
+                    // log(`addBlockStringRule("${id}",  ${tokenPairs.map(t => t.begin + t.end).join('|')}) => [${lineCounter.name}]`);
+                    lineCounter.addBlockStringRule(...patterns.patterns.map(pat => { return {begin: pat[0], end: pat[1]}; }));
+                } 
             });
         });
 
@@ -423,27 +359,94 @@ class LineCounterTable {
         // log(`this.aliasTable : ${this.aliasTable.size}  =======================================================================`);
         // this.aliasTable.forEach((v, n) => { log(`${n}\t ${JSON.stringify(v)}`); });
     }
-    public findLineCounter(filepath: string) {
-        const lineCounter = this.getByPath(filepath);
+    public getById(langId: string) {
+        return this.langIdTable.get(langId) || this.aliasTable.get(langId);
+    }
+    public getByPath(filePath: string) {
+        const lineCounter = this.fileextRules.get(filePath) || this.fileextRules.get(path.extname(filePath)) || this.filenameRules.get(path.basename(filePath));
         if (lineCounter !== undefined) {
             return lineCounter; 
         }
-        const patType = this.associations.find(([pattern, ]) => minimatch(filepath, pattern, {matchBase: true}));
-        //log(`## ${filepath}: ${patType}`);
-        return (patType !== undefined) ? this.getByName(patType[1]) : undefined;
+        const patType = this.associations.find(([pattern, ]) => minimatch(filePath, pattern, {matchBase: true}));
+        //log(`## ${filePath}: ${patType}`);
+        return (patType !== undefined) ? this.getById(patType[1]) : undefined;
     }
-    public getByName(langName: string) {
-        return this.langIdTable.get(langName) || this.aliasTable.get(langName);
+
+    // public countById(filepath: string, text: string): {languageId:string, code:number, comment:number, blank:number}|undefined {
+    //     const counter = this.getById(filepath);
+    //     return (counter !== undefined) ? {languageId: counter.languageId, ...counter.count(text)} : undefined;
+    // }
+    // public countByPath(filepath: string, text: string): {languageId:string, code:number, comment:number, blank:number}|undefined {
+    //     const counter = this.getByPath(filepath);
+    //     return (counter !== undefined) ? {languageId: counter.languageId, ...counter.count(text)} : undefined;
+    // }
+}
+function outputResults(workspaceDir:string, results: Result[], outputDirPath: string, conf: vscode.WorkspaceConfiguration) {
+    const resultTable = new ResultTable(workspaceDir, results, conf.get('printNumberWithCommas', true) ? toStringWithCommas : (obj:any) => obj.toString() );
+    const endOfLine = conf.get('endOfLine', '\n');
+    log(`count ${results.length} files`);
+    if (results.length <= 0) {
+        vscode.window.showErrorMessage(`[${EXTENSION_NAME}] There was no target file.`);
+        return;
     }
-    public getByPath(filePath: string) {
-        return this.fileextRules.get(filePath) || this.fileextRules.get(path.extname(filePath)) || this.filenameRules.get(path.basename(filePath));
+    const previewType = conf.get<string>('outputPreviewType', '');
+    log(`OutputDir : ${outputDirPath}`);
+    makeDirectories(outputDirPath);
+    if (conf.get('outputAsText', true)) {
+        const promise = writeTextFile(path.join(outputDirPath, 'results.txt'), resultTable.toTextLines().join(endOfLine));
+        if (previewType === 'text') {
+            promise.then(ofilename => showTextFile(ofilename)).catch(err => console.error(err));
+        } else {
+            promise.catch(err => console.error(err));
+        }
     }
-    public addBlockStringRule(id: string, ...tokenPairs: {begin:string,end:string}[]) {
-        const lineCounter = this.getByName(id) || this.getByPath(id);
-        if (lineCounter) {
-            // log(`addBlockStringRule("${id}",  ${tokenPairs.map(t => t.begin + t.end).join('|')}) => [${lineCounter.name}]`);
-            lineCounter.addBlockStringRule(...tokenPairs);
-        } 
+    if (conf.get('outputAsCSV', true)) {
+        const promise = writeTextFile(path.join(outputDirPath, 'results.csv'), resultTable.toCSVLines().join(endOfLine));
+        if (previewType === 'csv') {
+            promise.then(ofilename => showTextFile(ofilename)).catch(err => console.error(err));
+        } else {
+            promise.catch(err => console.error(err));
+        }
+    }
+    if (conf.get('outputAsMarkdown', true)) {
+        const promise = conf.get('outputMarkdownSeparately.', true)
+            ? writeTextFile(path.join(outputDirPath, 'details.md'), [
+                    '# Details',
+                    '',
+                    ...resultTable.toMarkdownHeaderLines(),
+                    '',
+                    `[summary](results.md)`,
+                    '',
+                    ...resultTable.toMarkdownDetailsLines(),
+                    '',
+                    `[summary](results.md)`,
+                    ].join(endOfLine)
+                ).then(ofilename => writeTextFile(path.join(outputDirPath, 'results.md'), [
+                    '# Summary',
+                    '',
+                    ...resultTable.toMarkdownHeaderLines(),
+                    '',
+                    `[details](details.md)`,
+                    '',
+                    ...resultTable.toMarkdownSummaryLines(),
+                    '',
+                    `[details](details.md)`
+                    ].join(endOfLine))
+                )
+            : writeTextFile(path.join(outputDirPath, 'results.md'), [
+                    ...resultTable.toMarkdownHeaderLines(),
+                    '',
+                    ...resultTable.toMarkdownSummaryLines(),
+                    '',
+                    ...resultTable.toMarkdownDetailsLines(),
+                    ].join(endOfLine)
+                );
+        if (previewType === 'markdown') {
+            promise.then(ofilename => vscode.commands.executeCommand("markdown.showPreview", vscode.Uri.file(ofilename)))
+                .catch(err => console.error(err));
+        } else {
+            promise.catch(err => console.error(err));
+        }
     }
 }
 
@@ -451,23 +454,18 @@ class LineCounterTable {
 class Result {
     public filename: string;
     public language: string;
-    public errorMessage: string;
     public code = 0;
     public comment = 0;
     public blank = 0;
     get total(): number {
         return this.code + this.comment + this.blank;
     }
-    constructor(filename: string, language: string, errorMessage = '') {
+    constructor(filename: string, language: string, value: {code:number, comment:number, blank:number} ={code:-1,comment:0,blank:0}) {
         this.filename = filename;
         this.language = language;
-        this.errorMessage = errorMessage;
-    }
-    public append(value: {code:number, comment:number, blank:number}) {
-        this.code += value.code;
-        this.comment += value.comment;
-        this.blank += value.blank;
-        return this;
+        this.code = value.code;
+        this.comment = value.comment;
+        this.blank = value.blank;
     }
 }
 class Statistics {
@@ -482,11 +480,11 @@ class Statistics {
     constructor(name: string) {
         this.name = name;
     }
-    public append(value: {code:number, comment:number, blank:number}) {
+    public append(result: Result) {
         this.files++;
-        this.code += value.code;
-        this.comment += value.comment;
-        this.blank += value.blank;
+        this.code += result.code;
+        this.comment += result.comment;
+        this.blank += result.blank;
         return this;
     }
 }
@@ -506,7 +504,7 @@ class MarkdownTableFormatter {
         return ['| ' + this.columnInfo.map(i => i.title).join(' | ') + ' |', this.lineSeparator];
     }
     public line(...data: (string|number|boolean)[]) {
-        return '| ' + data.map((d, i) => (typeof d !== 'string') ? this.valueToString(d) : (this.columnInfo[i].format === 'uri') ? `[${d}](${vscode.Uri.file(path.join(this.dir, d))})` : d).join(' | ') + ' |';
+        return '| ' + data.map((d, i) => (typeof d !== 'string') ? this.valueToString(d) : (this.columnInfo[i].format === 'uri') ? `[${path.relative(this.dir, d)}](${vscode.Uri.file(d)})` : d).join(' | ') + ' |';
     }
 }
 class ResultTable {
@@ -517,34 +515,25 @@ class ResultTable {
     private total = new Statistics('Total');
     private valueToString: (obj:any) => string;
 
-    constructor(dirpath: string, valueToString = (obj:any) => obj.toString()) {
+    constructor(dirpath: string, results:Result[], valueToString = (obj:any) => obj.toString()) {
         this.targetDirPath = dirpath;
+        this.fileResults = results;
         this.valueToString = valueToString;
-    }
-    public get length() {
-        return this.fileResults.length;
-    }
-
-    public appendResult(filepath: string, language: string, value: {code:number, comment:number, blank:number}) {
-        const result = new Result(path.relative(this.targetDirPath, filepath), language).append(value);
-        this.fileResults.push(result);
-        let parent = path.dirname(result.filename);
-        while (parent.length > 0) {
-            getOrSetFirst(this.dirResultTable, parent, () => new Statistics(parent)).append(value);
-            const p = path.dirname(parent);
-            if (p === parent) {
-                break;
+        results
+        .filter((result) => result.code >= 0)
+        .forEach((result) => {
+            let parent = path.dirname(result.filename);
+            while (parent.length >= this.targetDirPath.length) {
+                getOrSetFirst(this.dirResultTable, parent, () => new Statistics(parent)).append(result);
+                const p = path.dirname(parent);
+                if (p === parent) {
+                    break;
+                }
+                parent = p;
             }
-            parent = p;
-        }
-        getOrSetFirst(this.langResultTable, language, () => new Statistics(language)).append(value);
-        this.total.append(value);
-    }
-    public appendError(filepath: string, language: string, err:NodeJS.ErrnoException) {
-        this.fileResults.push(new Result(path.relative(this.targetDirPath, filepath), language, 'Error:' + err.message));
-    }
-    public appendEmpty(filepath: string, language: string) {
-        this.fileResults.push(new Result(path.relative(this.targetDirPath, filepath), language));
+            getOrSetFirst(this.langResultTable, result.language, () => new Statistics(result.language)).append(result);
+            this.total.append(result);
+        });
     }
     public toCSVLines() {
         const languages = [...this.langResultTable.keys()];
