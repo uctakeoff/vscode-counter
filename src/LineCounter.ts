@@ -8,7 +8,7 @@ export default class LineCounter
     public blockComment: {begin:string, end:string}[] = [];
     public blockString: {begin:string, end:string}[] = [];
 
-    get name(): string {
+    get languageId(): string {
         return this.aliases.length > 0 ? this.aliases[0] : this.id;
     }
 
