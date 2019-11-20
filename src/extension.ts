@@ -8,7 +8,9 @@ import LineCounter from './LineCounter';
 import Gitignore from './Gitignore';
 import * as JSONC from 'jsonc-parser';
 import * as minimatch from 'minimatch';
+import { TextDecoder } from 'util';
 
+const EXTENSION_ID = 'uctakeoff.vscode-counter';
 const EXTENSION_NAME = 'VSCodeCounter';
 const CONFIGURATION_SECTION = 'VSCodeCounter';
 const toZeroPadString = (num: number, fig: number) => num.toString().padStart(fig, '0');
@@ -21,14 +23,19 @@ const toStringWithCommas = (obj: any) => {
         return obj.toString();
     }
 };
-const log = (message: string) => console.log(`[${EXTENSION_NAME}] ${message}`);
+const log = (message: string) => console.log(`[${EXTENSION_NAME}] ${new Date().toISOString()} ${message}`);
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+    let version = "-";
+    const ext = vscode.extensions.getExtension(EXTENSION_ID);
+    if (ext !== undefined && (typeof ext.packageJSON.version === 'string')) {
+        version = ext.packageJSON.version;
+    }
     // Use the console to output diagnostic information (console.log) and errors (console.error)
     // This line of code will only be executed once when your extension is activated
-    log(`now active! : ${context.extensionPath}`);
+    log(`${EXTENSION_ID} ver.${version} now active! : ${context.extensionPath}`);
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with  registerCommand
     // The commandId parameter must match the command field in package.json
@@ -89,36 +96,44 @@ class CodeCounterController {
         this.configuration.update('showInStatusBar', !this.isVisible);
     }
     public countInDirectory(targetDir: vscode.Uri|undefined) {
-        const folders = workspaceFolders();
-        if (folders.length <= 0) {
-            vscode.window.showErrorMessage(`[${EXTENSION_NAME}] No open workspace`);
-        } else if (targetDir !== undefined) {
-            this.codeCounter.countLinesInDirectory(targetDir, folders[0].uri);
-        } else {
-            const option = {
-                value : folders[0].uri.toString(true),
-                placeHolder: "Input Directory Path",
-                prompt: "Input Directory Path. "
-            };
-            vscode.window.showInputBox(option).then(uri => {
-                if (uri !== undefined) {
-                    this.codeCounter.countLinesInDirectory(vscode.Uri.parse(uri), folders[0].uri);
-                }
-            });
+        try {
+            const folders = workspaceFolders();
+            if (folders.length <= 0) {
+                vscode.window.showErrorMessage(`[${EXTENSION_NAME}] No open workspace`);
+            } else if (targetDir !== undefined) {
+                this.codeCounter.countLinesInDirectory(targetDir, folders[0].uri);
+            } else {
+                const option = {
+                    value : folders[0].uri.toString(true),
+                    placeHolder: "Input Directory Path",
+                    prompt: "Input Directory Path. "
+                };
+                vscode.window.showInputBox(option).then(uri => {
+                    if (uri !== undefined) {
+                        this.codeCounter.countLinesInDirectory(vscode.Uri.parse(uri), folders[0].uri);
+                    }
+                });
+            }
+        } catch (e) {
+            vscode.window.showErrorMessage(`[${EXTENSION_NAME}] failed.`, e.message);
         }
     }
     public countInWorkspace() {
-        const folders = workspaceFolders();
-        if (folders.length <= 0) {
-            vscode.window.showErrorMessage(`[${EXTENSION_NAME}] No open workspace`);
-        } else if (folders.length === 1) {
-            this.codeCounter.countLinesInDirectory(folders[0].uri, folders[0].uri);
-        } else {
-            vscode.window.showWorkspaceFolderPick().then((folder) => {
-                if (folder) {
-                    this.codeCounter.countLinesInDirectory(folder.uri, folder.uri);
-                }
-            });
+        try {
+            const folders = workspaceFolders();
+            if (folders.length <= 0) {
+                vscode.window.showErrorMessage(`[${EXTENSION_NAME}] No open workspace`);
+            } else if (folders.length === 1) {
+                this.codeCounter.countLinesInDirectory(folders[0].uri, folders[0].uri);
+            } else {
+                vscode.window.showWorkspaceFolderPick().then((folder) => {
+                    if (folder) {
+                        this.codeCounter.countLinesInDirectory(folder.uri, folder.uri);
+                    }
+                });
+            }
+        } catch (e) {
+            vscode.window.showErrorMessage(`[${EXTENSION_NAME}] failed.`, e.message);
         }
     }
     private onDidChangeWorkspaceFolders(e: vscode.WorkspaceFoldersChangeEvent) {
@@ -151,6 +166,55 @@ class CodeCounterController {
         }
     }
 }
+const encodingTable = new Map<string, string>([
+    ['big5hkscs',    'big5-hkscs'],
+    // ['cp437',        ''],
+    // ['cp850',        ''],
+    // ['cp852',        ''],
+    // ['cp865',        ''],
+    // ['cp866',        ''],
+    // ['cp950',        ''],
+    ['eucjp',        'euc-jp'],
+    ['euckr',        'euc-kr'],
+    // ['gb18030',      ''],
+    // ['gb2312',       ''],
+    // ['gbk',          ''],
+    // ['iso88591',     ''],
+    // ['iso885910',    ''],
+    // ['iso885911',    ''],
+    // ['iso885913',    ''],
+    // ['iso885914',    ''],
+    // ['iso885915',    ''],
+    // ['iso88592',     ''],
+    // ['iso88593',     ''],
+    // ['iso88594',     ''],
+    // ['iso88595',     ''],
+    // ['iso88596',     ''],
+    // ['iso88597',     ''],
+    // ['iso88598',     ''],
+    // ['iso88599',     ''],
+    ['iso885916',    'iso-8859-16'],
+    ['koi8r',        'koi8-r'],
+    ['koi8ru',       'koi8-ru'],
+    ['koi8t',        'koi8-t'],
+    ['koi8u',        'koi8-u'],
+    ['macroman',     'x-mac-roman'],
+    ['shiftjis',     'shift-jis'],
+    ['utf16be',      'utf-16be'],
+    ['utf16le',      'utf-16le'],
+    // ['utf8',         ''],
+    ['utf8bom',      'utf8'],
+    ['windows1250',  'windows-1250'],
+    ['windows1251',  'windows-1251'],
+    ['windows1252',  'windows-1252'],
+    ['windows1253',  'windows-1253'],
+    ['windows1254',  'windows-1254'],
+    ['windows1255',  'windows-1255'],
+    ['windows1256',  'windows-1256'],
+    ['windows1257',  'windows-1257'],
+    ['windows1258',  'windows-1258'],
+    ['windows874',   'windows-874'],
+]);
 
 class CodeCounter {
     private outputChannel: vscode.OutputChannel|null = null;
@@ -190,12 +254,14 @@ class CodeCounter {
         const outputDir = path.resolve(outputDirUri.fsPath, this.getConf('outputDirectory', '.VSCodeCounter'));
         log(`countLinesInDirectory : ${targetUri}, output dir: ${outputDir}`);
         const confFiles = vscode.workspace.getConfiguration("files", null);
-        const encoding = confFiles.get('encoding', 'utf8');
         const includes = this.getConf<Array<string>>('include', ['**/*']);
         const excludes = this.getConf<Array<string>>('exclude', []);
         if (this.getConf('useFilesExclude', true)) {
             excludes.push(...Object.keys(confFiles.get<object>('exclude', {})));
         }
+        const encoding = confFiles.get('encoding', 'utf8');
+        const decoder = new TextDecoder(encodingTable.get(encoding) || encoding);
+
         excludes.push(vscode.workspace.asRelativePath(outputDir));
         log(`includes : "${includes.join('", "')}"`);
         log(`excludes : "${excludes.join('", "')}"`);
@@ -226,6 +292,7 @@ class CodeCounter {
                 fileUris.forEach(fileUri => {
                     const lineCounter = this.lineCounterTable.getByUri(fileUri);
                     if (lineCounter !== undefined) {
+/*
                         fs.readFile(fileUri.fsPath, encoding, (err, data) => {
                             ++fileCount;
                             if (err) {
@@ -238,6 +305,19 @@ class CodeCounter {
                                 resolve(results);
                             }
                         });
+*/
+                        vscode.workspace.fs.readFile(fileUri).then((data => {
+                            ++fileCount;
+                            try {
+                                results.push(new Result(fileUri, lineCounter.languageId, lineCounter.count(decoder.decode(data))));
+                            } catch (e) {
+                                this.toOutputChannel(`"${fileUri}" Read Error : ${e.message}.`);
+                                results.push(new Result(fileUri, '(Read Error)'));
+                            }
+                            if (fileCount === fileUris.length) {
+                                resolve(results);
+                            }
+                        }));
                     } else {
                         if (!ignoreUnsupportedFile) {
                             results.push(new Result(fileUri, '(Unsupported)'));
@@ -252,7 +332,7 @@ class CodeCounter {
         }).then((results: Result[]) => {
             outputResults(targetUri, results, outputDir, this.configuration);
         }).catch((reason: string) => {
-            vscode.window.showErrorMessage(`[${EXTENSION_NAME}] Error has occurred.`, reason);
+            vscode.window.showErrorMessage(`[${EXTENSION_NAME}] failed.`, reason);
         });
     }
     private countFile_(doc: vscode.TextDocument|undefined) {
@@ -302,27 +382,27 @@ class LineCounterTable {
         const confJsonTable = new Map<string, object>();
 
         vscode.extensions.all.forEach(ex => {
-            // log(JSON.stringify(ex.packageJSON));
             const contributes = ex.packageJSON.contributes;
             if (contributes !== undefined) {
                 const languages = contributes.languages;
                 if (languages !== undefined) {
-                    languages.forEach((lang:any) => {
+                    languages.forEach((lang: {id:string, aliases:string[]|undefined, filenames:string[]|undefined, extensions:string[]|undefined, configuration:string|undefined}) => {
                         const lineCounter = getOrSetFirst(this.langIdTable, lang.id, () => new LineCounter(lang.id));
-                        lineCounter.addAlias(lang.aliases);
-                        if (lang.aliases !== undefined && lang.aliases.length > 0) {
+                        if (lang.aliases !== undefined) {
+                            lineCounter.addAlias(lang.aliases);
                             lang.aliases.forEach((alias:string) => {
                                 this.aliasTable.set(alias, lineCounter);
                             });
                         }
                         const confpath = lang.configuration ? path.join(ex.extensionPath, lang.configuration) : "";
                         if (confpath.length > 0) {
-                            // log(`language conf file: ${confpath}`);
+                            log(`  language conf file: ${confpath}`);
                             const v = getOrSetFirst(confJsonTable, confpath, () => JSONC.parse(fs.readFileSync(confpath, "utf8")));
+                            log(`  ${JSON.stringify(v)}`);
                             lineCounter.addCommentRule(v.comments);
                         }
                         if (lang.extensions !== undefined) {
-                            (lang.extensions as Array<string>).forEach(ex => this.fileextRules.set(ex, lineCounter));
+                            (lang.extensions as Array<string>).forEach(ex => this.fileextRules.set(ex.startsWith('.') ? ex : `.${ex}`, lineCounter));
                         }
                         if (lang.filenames !== undefined) {
                             (lang.filenames as Array<string>).forEach(ex => this.filenameRules.set(ex, lineCounter));

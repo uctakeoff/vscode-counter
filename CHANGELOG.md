@@ -6,6 +6,12 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [Unreleased]
 
 
+## [1.3.1]
+
+### Fixed
+
+- Problems that occur when `files.encoding` is set to a value other than utf8
+
 ## [1.3.0]
 
 ### Added
