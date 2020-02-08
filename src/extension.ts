@@ -3,7 +3,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import * as path from 'path';
-import * as fs from 'graceful-fs';
+// import * as fs from 'graceful-fs';
 import LineCounter from './LineCounter';
 import Gitignore from './Gitignore';
 import * as JSONC from 'jsonc-parser';
@@ -44,7 +44,8 @@ export function activate(context: vscode.ExtensionContext) {
         codeCountController,
         vscode.commands.registerCommand('extension.vscode-counter.countInWorkspace', () => codeCountController.countInWorkspace()),
         vscode.commands.registerCommand('extension.vscode-counter.countInDirectory', (targetDir: vscode.Uri|undefined) => codeCountController.countInDirectory(targetDir)),
-        vscode.commands.registerCommand('extension.vscode-counter.countInFile', () => codeCountController.toggleVisible())
+        vscode.commands.registerCommand('extension.vscode-counter.countInFile', () => codeCountController.toggleVisible()),
+        vscode.commands.registerCommand('extension.vscode-counter.outputAvailableLanguages', () => codeCountController.outputAvailableLanguages())
     );
 }
 // this method is called when your extension is deactivated
@@ -94,6 +95,9 @@ class CodeCounterController {
     }
     public toggleVisible() {
         this.configuration.update('showInStatusBar', !this.isVisible);
+    }
+    public outputAvailableLanguages() {
+        this.codeCounter.outputAvailableLanguages();
     }
     public countInDirectory(targetDir: vscode.Uri|undefined) {
         try {
@@ -248,16 +252,19 @@ class CodeCounter {
     private outputChannel: vscode.OutputChannel|null = null;
     private statusBarItem: vscode.StatusBarItem|null = null;
     private configuration: vscode.WorkspaceConfiguration;
+    private langExtensions: VscodeLangExtension[];
     private lineCounterTable: LineCounterTable;
 
     constructor(configuration: vscode.WorkspaceConfiguration) {
-        log(`create CodeCounter`);
+        log(`build CodeCounter start`);
         this.configuration = configuration;
         const confFiles = vscode.workspace.getConfiguration("files", null);
-        this.lineCounterTable = new LineCounterTable(this.configuration, [...Object.entries(confFiles.get<object>('associations', {}))]);
+        this.langExtensions = loadLanguageExtensions();
+        this.lineCounterTable = new LineCounterTable(this.langExtensions, this.configuration, [...Object.entries(confFiles.get<object>('associations', {}))]);
         if (this.getConf('showInStatusBar', false)) {
             this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
         }
+        log(`create CodeCounter end`);
     }
     dispose() {
         if (this.statusBarItem !== null) {
@@ -277,6 +284,12 @@ class CodeCounter {
         }
         this.outputChannel.show();
         this.outputChannel.appendLine(text);
+    }
+    public outputAvailableLanguages() {
+        this.langExtensions.forEach((lang) => {
+            this.toOutputChannel(`${lang.id} : aliases[${lang.aliases}], extensions[${lang.extensions}], filenames:[${lang.filenames}]`);
+        });
+        this.toOutputChannel(`VS Code Counter : available all ${this.langExtensions.length} languages.`);
     }
     public countLinesInDirectory(targetUri: vscode.Uri, outputDirUri: vscode.Uri) {
         // const outputDir = path.resolve(outputDirUri.fsPath, this.getConf('outputDirectory', '.VSCodeCounter'));
@@ -407,6 +420,37 @@ class CodeCounter {
     }
 }
 
+class VscodeLangExtension {
+    extensionPath: string;
+    id:string;
+    aliases:string[];
+    filenames:string[];
+    extensions:string[];
+    configuration:vscode.Uri|undefined;
+
+    constructor(extensionPath:string, language:{id:string, aliases:string[]|undefined, filenames:string[]|undefined, extensions:string[]|undefined, configuration:string|undefined}) {
+        this.extensionPath = extensionPath;
+        this.id = language.id;
+        this.aliases = language.aliases !== undefined ? language.aliases : [];
+        this.filenames = language.filenames !== undefined ? language.filenames : [];
+        this.extensions = language.extensions !== undefined ? language.extensions : [];
+        this.configuration = language.configuration !== undefined ? vscode.Uri.file(path.join(this.extensionPath, language.configuration)) : undefined;
+    }
+}
+function loadLanguageExtensions() : VscodeLangExtension[] {
+    const ret : VscodeLangExtension[] = [];
+    vscode.extensions.all.forEach(ex => {
+        const contributes = ex.packageJSON.contributes;
+        if (contributes !== undefined) {
+            const languages = contributes.languages;
+            if (languages !== undefined) {
+                (languages as Array<any>).forEach(l => ret.push(new VscodeLangExtension(ex.extensionPath, l)));
+            }
+        }
+    });
+    return ret;
+}
+
 class LineCounterTable {
     private langIdTable: Map<string, LineCounter>;
     private aliasTable: Map<string, LineCounter>;
@@ -414,7 +458,7 @@ class LineCounterTable {
     private filenameRules: Map<string, LineCounter>;
     private associations: [string, string][];
 
-    constructor(conf: vscode.WorkspaceConfiguration, associations: [string, string][]) {
+    constructor(langExtensions: VscodeLangExtension[], conf: vscode.WorkspaceConfiguration, associations: [string, string][]) {
         this.langIdTable = new Map<string, LineCounter>();
         this.aliasTable = new Map<string, LineCounter>();
         this.fileextRules = new Map<string, LineCounter>();
@@ -423,38 +467,28 @@ class LineCounterTable {
         log(`associations : ${this.associations.length}\n[${this.associations.join("],[")}]`);
 
         const confJsonTable = new Map<string, object>();
+        const decoderU8 = new TextDecoder('utf8');
 
-        vscode.extensions.all.forEach(ex => {
-            const contributes = ex.packageJSON.contributes;
-            if (contributes !== undefined) {
-                const languages = contributes.languages;
-                if (languages !== undefined) {
-                    languages.forEach((lang: {id:string, aliases:string[]|undefined, filenames:string[]|undefined, extensions:string[]|undefined, configuration:string|undefined}) => {
-                        const lineCounter = getOrSetFirst(this.langIdTable, lang.id, () => new LineCounter(lang.id));
-                        if (lang.aliases !== undefined) {
-                            lineCounter.addAlias(lang.aliases);
-                            lang.aliases.forEach((alias:string) => {
-                                this.aliasTable.set(alias, lineCounter);
-                            });
-                        }
-                        // log(`${lang.id} : aliases[${lang.aliases}], extensions[${lang.extensions}], filenames:[${lang.filenames}]`);
-                        const confpath = lang.configuration ? path.join(ex.extensionPath, lang.configuration) : "";
-                        if (confpath.length > 0) {
-                            // log(`  language conf file: ${confpath}`);
-                            const v = getOrSetFirst(confJsonTable, confpath, () => JSONC.parse(fs.readFileSync(confpath, "utf8")));
-                            // log(`  ${JSON.stringify(v)}`);
-                            lineCounter.addCommentRule(v.comments);
-                        }
-                        if (lang.extensions !== undefined) {
-                            (lang.extensions as Array<string>).forEach(ex => this.fileextRules.set(ex.startsWith('.') ? ex : `.${ex}`, lineCounter));
-                        }
-                        if (lang.filenames !== undefined) {
-                            (lang.filenames as Array<string>).forEach(ex => this.filenameRules.set(ex, lineCounter));
-                        }
-                    });
-                }
+        langExtensions.forEach(lang => {
+            // log(`${lang.id} : aliases[${lang.aliases}], extensions[${lang.extensions}], filenames:[${lang.filenames}], configuration:[${lang.configuration}]`);
+            const lineCounter = getOrSetFirst(this.langIdTable, lang.id, () => new LineCounter(lang.id));
+            lineCounter.addAlias(lang.aliases);
+            lang.aliases.forEach((alias:string) => {
+                this.aliasTable.set(alias, lineCounter);
+            });
+            const confpath = lang.configuration;
+            if (confpath !== undefined) {
+                vscode.workspace.fs.readFile(confpath).then(data => {
+                    // log(`"${confpath}" : ${data.length}B`);
+                    const v = getOrSetFirst(confJsonTable, confpath.toString(), () => JSONC.parse(decoderU8.decode(data)));
+                    // log(`  ${JSON.stringify(v)}`);
+                    lineCounter.addCommentRule(v.comments);
+                });
             }
+            lang.extensions.forEach(ex => this.fileextRules.set(ex.startsWith('.') ? ex : `.${ex}`, lineCounter));
+            lang.filenames.forEach(ex => this.filenameRules.set(ex, lineCounter));
         });
+
         class BlockPattern {
             public types: string[] = [];
             public patterns: string[][] = [];

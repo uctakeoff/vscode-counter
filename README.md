@@ -15,7 +15,7 @@ VS Code extension: counts blank lines, comment lines, and physical lines of sour
 
 ### Count in workspace
 
-* Open the command palette and select  `VSCode Counter: Count lines in workspace`.
+* Open the command palette and select  `VSCodeCounter: Count lines in workspace`.
 
     ![](images/count_workspace.gif)
 
@@ -30,11 +30,16 @@ VS Code extension: counts blank lines, comment lines, and physical lines of sour
 
 ### Real-time counter
 
-* Open the command palette and select  `VSCode Counter: Toggle Real-time Counter Visibility`.
+* Open the command palette and select  `VSCodeCounter: Toggle Real-time Counter Visibility`.
 
     ![](images/realtime_counter.png)
 
+### Check available languages
 
+* Open the command palette and select  `VSCodeCounter: Check available languages`.
+    ![](images/avail_langs.png)
+
+    * Available languages can be increased by adding language extensions.
 
 ## Extension Settings
 
