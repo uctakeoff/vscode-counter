@@ -5,6 +5,19 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
+* workspace counter in status bar.
+
+## [1.3.3]
+
+### Added
+
+- New Command : `Check available languages`.
+
+## [1.3.2]
+
+### Fixed
+
+- Replaced the file API used with one provided by vscode.
 
 ## [1.3.1]
 

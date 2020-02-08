@@ -2,7 +2,7 @@
   "name": "vscode-counter",
   "displayName": "VS Code Counter",
   "description": "Count lines of code in many programming languages.",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "publisher": "uctakeoff",
   "author": {
     "name": "Ushiyama Kentaro"
@@ -36,7 +36,8 @@
     "*",
     "onCommand:extension.vscode-counter.countInFile",
     "onCommand:extension.vscode-counter.countInDirectory",
-    "onCommand:extension.vscode-counter.countInWorkspace"
+    "onCommand:extension.vscode-counter.countInWorkspace",
+    "onCommand:extension.vscode-counter.outputAvailableLanguages"
   ],
   "contributes": {
     "commands": [
@@ -56,6 +57,12 @@
         "command": "extension.vscode-counter.countInWorkspace",
         "category": "VSCodeCounter",
         "title": "%commands.countInWorkspace.title%",
+        "icon": "images/icon.png"
+      },
+      {
+        "command": "extension.vscode-counter.outputAvailableLanguages",
+        "category": "VSCodeCounter",
+        "title": "%commands.outputAvailableLanguages.title%",
         "icon": "images/icon.png"
       }
     ],

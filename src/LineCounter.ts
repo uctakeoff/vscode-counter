@@ -16,9 +16,7 @@ export default class LineCounter
         this.id = id;
     }
     public addAlias(aliases: string[]) {
-        if (aliases) {
-            this.aliases.push(...aliases);
-        }
+        this.aliases.push(...aliases);
     }
     public addLineCommentRule(...tokens: string[]) {
         this.lineComment.push(...tokens);
