@@ -52,7 +52,7 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() {
 }
 
-const workspaceFolders = (): vscode.WorkspaceFolder[] => {
+const workspaceFolders = (): readonly vscode.WorkspaceFolder[] => {
     const folders = vscode.workspace.workspaceFolders;
     return !folders ? [] : folders;
 };
@@ -889,18 +889,20 @@ function writeTextFile(outputFilename: string, text: string) {
 }
 */
 function makeDirectories_(dirpath: vscode.Uri, resolve: ()=> void, reject: (reason: string) => void) {
-    console.log(`makeDirectories ${dirpath}`);
+    // log(`makeDirectories ${dirpath}`);
     vscode.workspace.fs.stat(dirpath).then((value) => {
-        if (value.type === vscode.FileType.Directory) {
+        if (value.type !== vscode.FileType.File) {
             resolve();
         } else {
             reject(`${dirpath} is not directory.`);
         }
     }, (reason) => {
+        log(`vscode.workspace.fs.stat failed: ${reason}`);
         const curPath = dirpath.path;
         const parent = path.dirname(curPath);
         if (parent !== curPath) {
             makeDirectories_(dirpath.with({path: parent}), () => {
+                log(`vscode.workspace.fs.createDirectory ${dirpath}`);
                 vscode.workspace.fs.createDirectory(dirpath).then(resolve, reject);
             }, reject);
         } else {

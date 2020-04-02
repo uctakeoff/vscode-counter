@@ -7,6 +7,12 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 * workspace counter in status bar.
 
+## [1.3.4]
+
+### Fixed
+
+- Issue : `Handling symlinks`.
+
 ## [1.3.3]
 
 ### Added
