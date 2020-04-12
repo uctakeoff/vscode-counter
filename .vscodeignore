@@ -1,5 +1,6 @@
 .vscode/**
 .vscode-test/**
+.VSCodeCounter/**
 out/test/**
 src/**
 .gitignore
@@ -9,3 +10,4 @@ vsc-extension-quickstart.md
 **/*.map
 **/*.ts
 work/**
+images/**

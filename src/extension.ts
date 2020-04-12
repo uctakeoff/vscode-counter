@@ -52,7 +52,7 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() {
 }
 
-const workspaceFolders = (): vscode.WorkspaceFolder[] => {
+const workspaceFolders = (): readonly vscode.WorkspaceFolder[] => {
     const folders = vscode.workspace.workspaceFolders;
     return !folders ? [] : folders;
 };
@@ -706,6 +706,7 @@ class ResultTable {
             this.total.append(result);
         });
     }
+/*
     public toCSVLines() {
         const languages = [...this.langResultTable.keys()];
         return [
@@ -713,6 +714,16 @@ class ResultTable {
             ...this.fileResults.sort((a,b) => a.filename < b.filename ? -1 : a.filename > b.filename ? 1 : 0)
                 .map(v => `${v.filename}, ${v.language}, ${languages.map(l => l === v.language ? v.code : 0).join(', ')}, ${v.comment}, ${v.blank}, ${v.total}`),
             `Total, -, ${[...this.langResultTable.values()].map(r => r.code).join(', ')}, ${this.total.comment}, ${this.total.blank}, ${this.total.total}`
+        ];
+    }
+*/
+    public toCSVLines() {
+        const languages = [...this.langResultTable.keys()];
+        return [
+            `"filename", "language", "${languages.join('", "')}", "comment", "blank", "total"`,
+            ...this.fileResults.sort((a,b) => a.filename < b.filename ? -1 : a.filename > b.filename ? 1 : 0)
+                .map(v => `"${v.filename}", "${v.language}", ${languages.map(l => l === v.language ? v.code : 0).join(', ')}, ${v.comment}, ${v.blank}, ${v.total}`),
+            `"Total", "-", ${[...this.langResultTable.values()].map(r => r.code).join(', ')}, ${this.total.comment}, ${this.total.blank}, ${this.total.total}`
         ];
     }
     public toTextLines() {
@@ -889,18 +900,20 @@ function writeTextFile(outputFilename: string, text: string) {
 }
 */
 function makeDirectories_(dirpath: vscode.Uri, resolve: ()=> void, reject: (reason: string) => void) {
-    console.log(`makeDirectories ${dirpath}`);
+    // log(`makeDirectories ${dirpath}`);
     vscode.workspace.fs.stat(dirpath).then((value) => {
-        if (value.type === vscode.FileType.Directory) {
+        if (value.type !== vscode.FileType.File) {
             resolve();
         } else {
             reject(`${dirpath} is not directory.`);
         }
     }, (reason) => {
+        log(`vscode.workspace.fs.stat failed: ${reason}`);
         const curPath = dirpath.path;
         const parent = path.dirname(curPath);
         if (parent !== curPath) {
             makeDirectories_(dirpath.with({path: parent}), () => {
+                log(`vscode.workspace.fs.createDirectory ${dirpath}`);
                 vscode.workspace.fs.createDirectory(dirpath).then(resolve, reject);
             }, reject);
         } else {

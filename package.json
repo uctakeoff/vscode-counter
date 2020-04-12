@@ -2,7 +2,7 @@
   "name": "vscode-counter",
   "displayName": "VS Code Counter",
   "description": "Count lines of code in many programming languages.",
-  "version": "1.3.3",
+  "version": "1.3.5",
   "publisher": "uctakeoff",
   "author": {
     "name": "Ushiyama Kentaro"
@@ -15,7 +15,7 @@
     "theme": "dark"
   },
   "license": "SEE LICENSE IN LICENSE.txt",
-  "icon": "images/icon.png",
+  "icon": "icon.png",
   "homepage": "https://github.com/uctakeoff/vscode-counter",
   "repository": {
     "type": "git",
@@ -45,25 +45,25 @@
         "command": "extension.vscode-counter.countInFile",
         "category": "VSCodeCounter",
         "title": "%commands.countInFile.title%",
-        "icon": "images/icon.png"
+        "icon": "icon.png"
       },
       {
         "command": "extension.vscode-counter.countInDirectory",
         "category": "VSCodeCounter",
         "title": "%commands.countInDirectory.title%",
-        "icon": "images/icon.png"
+        "icon": "icon.png"
       },
       {
         "command": "extension.vscode-counter.countInWorkspace",
         "category": "VSCodeCounter",
         "title": "%commands.countInWorkspace.title%",
-        "icon": "images/icon.png"
+        "icon": "icon.png"
       },
       {
         "command": "extension.vscode-counter.outputAvailableLanguages",
         "category": "VSCodeCounter",
         "title": "%commands.outputAvailableLanguages.title%",
-        "icon": "images/icon.png"
+        "icon": "icon.png"
       }
     ],
     "menus": {
@@ -263,7 +263,6 @@
     "vscode-test": "^1.2.2"
   },
   "dependencies": {
-    "graceful-fs": "^4.2.3",
     "jsonc-parser": "^2.2.0",
     "minimatch": "^3.0.4"
   }
