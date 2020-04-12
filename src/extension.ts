@@ -706,6 +706,7 @@ class ResultTable {
             this.total.append(result);
         });
     }
+/*
     public toCSVLines() {
         const languages = [...this.langResultTable.keys()];
         return [
@@ -713,6 +714,16 @@ class ResultTable {
             ...this.fileResults.sort((a,b) => a.filename < b.filename ? -1 : a.filename > b.filename ? 1 : 0)
                 .map(v => `${v.filename}, ${v.language}, ${languages.map(l => l === v.language ? v.code : 0).join(', ')}, ${v.comment}, ${v.blank}, ${v.total}`),
             `Total, -, ${[...this.langResultTable.values()].map(r => r.code).join(', ')}, ${this.total.comment}, ${this.total.blank}, ${this.total.total}`
+        ];
+    }
+*/
+    public toCSVLines() {
+        const languages = [...this.langResultTable.keys()];
+        return [
+            `"filename", "language", "${languages.join('", "')}", "comment", "blank", "total"`,
+            ...this.fileResults.sort((a,b) => a.filename < b.filename ? -1 : a.filename > b.filename ? 1 : 0)
+                .map(v => `"${v.filename}", "${v.language}", ${languages.map(l => l === v.language ? v.code : 0).join(', ')}, ${v.comment}, ${v.blank}, ${v.total}`),
+            `"Total", "-", ${[...this.langResultTable.values()].map(r => r.code).join(', ')}, ${this.total.comment}, ${this.total.blank}, ${this.total.total}`
         ];
     }
     public toTextLines() {
