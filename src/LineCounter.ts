@@ -2,42 +2,17 @@
 
 export default class LineCounter
 {
-    private id: string;
-    private aliases: string[] = [];
-    private lineComment: string[] = [];
-    public blockComment: {begin:string, end:string}[] = [];
-    public blockString: {begin:string, end:string}[] = [];
+    public readonly name: string;
+    private lineComments: string[];
+    private blockComments: [string, string][];
+    private blockStrings: [string, string][];
 
-    get languageId(): string {
-        return this.aliases.length > 0 ? this.aliases[0] : this.id;
+    constructor(name:string, lineComments:string[], blockComments:[string,string][], blockStrings:[string,string][]) {
+        this.name = name;
+        this.lineComments = lineComments;
+        this.blockComments = blockComments;
+        this.blockStrings = blockStrings;
     }
-
-    constructor(id:string) {
-        this.id = id;
-    }
-    public addAlias(aliases: string[]) {
-        this.aliases.push(...aliases);
-    }
-    public addLineCommentRule(...tokens: string[]) {
-        this.lineComment.push(...tokens);
-    }
-    public addBlockCommentRule(...tokenPairs: {begin:string, end:string}[]) {
-        this.blockComment.push(...tokenPairs);
-    }
-    public addBlockStringRule(...tokenPairs: {begin:string, end:string}[]) {
-        this.blockString.push(...tokenPairs);
-    }
-    public addCommentRule(rule: any) {
-        if (rule) {
-            if (typeof(rule.lineComment) === 'string' && rule.lineComment.length > 0) {
-                this.lineComment.push(rule.lineComment as string);
-            }
-            if (rule.blockComment && (rule.blockComment.length >= 2)) {
-                this.addBlockCommentRule({begin: rule.blockComment[0], end: rule.blockComment[1]});
-            }
-        }
-    }
-
     public count(text: string): {code:number, comment:number, blank:number} {
         enum LineType {Code, Comment, Blank}
 
@@ -72,28 +47,28 @@ export default class LineCounter
                     }
                 } else {
                     // now is line comment.
-                    if (this.lineComment.some(lc => line.startsWith(lc))) {
+                    if (this.lineComments.some(lc => line.startsWith(lc))) {
                         type = LineType.Comment;
                         break;
                     }
                     {
                         let index = -1;
-                        const range = this.blockComment.find(bc => { index = line.indexOf(bc.begin, i); return index >= 0; });
+                        const range = this.blockComments.find(bc => { index = line.indexOf(bc[0], i); return index >= 0; });
                         if (range !== undefined) {
                             // start block comment
                             type = index === 0 ? LineType.Comment : LineType.Code;
-                            blockCommentEnd = range.end;
-                            i = index + range.begin.length;
+                            blockCommentEnd = range[1];
+                            i = index + range[0].length;
                             continue;
                         }
                     }
                     type = LineType.Code;
                     {
                         let index = -1;
-                        const rabge = this.blockString.find(bc => { index = line.indexOf(bc.begin, i); return index >= 0; });
-                        if (rabge !== undefined) {
-                            blockStringEnd = rabge.end;
-                            i = index + rabge.begin.length;
+                        const range = this.blockStrings.find(bc => { index = line.indexOf(bc[0], i); return index >= 0; });
+                        if (range !== undefined) {
+                            blockStringEnd = range[1];
+                            i = index + range[0].length;
                             continue;
                         }
                     }
