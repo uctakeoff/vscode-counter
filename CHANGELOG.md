@@ -7,6 +7,17 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 * workspace counter in status bar.
 
+## [2.0.0]
+
+### Added
+
+- New Command : `Save the collected language configurations`.
+
+### Update
+
+- This extension is no longer resident.
+  - Don't save whether or not the program is shown in the status bar in the settings.
+
 ## [1.3.5]
 
 ### Fixed
