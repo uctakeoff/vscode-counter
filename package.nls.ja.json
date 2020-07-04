@@ -3,7 +3,8 @@
   "commands.countInDirectory.title": "ディレクトリ内のコード行を数える",
   "commands.countInWorkspace.title": "ワークスペース内のコード行を数える",
   "commands.outputAvailableLanguages.title": "利用可能な言語を確認する",
-  "configuration.showInStatusBar.description": "現在のファイルのカウント結果をリアルタイムでステータスバーに表示する.",
+  "commands.saveLanguageConfigurations.title": "収集した言語設定を保存する",
+
   "configuration.useGitignore.description": "対象ファイルを除外するために '.gitignore' を使う.",
   "configuration.useFilesExclude.description": "対象ファイルを除外するために 'files.exclude' 設定を使う.",
   "configuration.printNumberWithCommas.description": "数値をカンマ区切りで出力する (CSVを除く).",
@@ -17,7 +18,12 @@
   "configuration.outputAsMarkdown.description": "結果をMarkdown形式で出力する.",
   "configuration.outputMarkdownSeparately.description": "Markdown結果を概要と詳細で分けて出力する.",
   "configuration.outputPreviewType.description": "カウント後にプレビューする出力ファイルの種類.",
-  "configuration.blockComment.description": "ブロックコメント(ヒアドキュメント)の先頭と末尾を示すパターンを定義する.\n複数行にまたがるような文字列を判別するために使用する.この内部に現れたコメント行はコード行とみなされる.\n -types: 言語の種類. languageId(例 cpp, csharp, javascript...), エイリアス名(例 C++, C#, JavaScript), 拡張子(eg .cpp, .cs, .js) のいずれかで指定する.\n - patterns: コメント範囲を示すパターン.",
-  "configuration.blockComment.types.description": "言語の種類.\n languageId(例 cpp, csharp, javascript...), エイリアス名(例 C++, C#, JavaScript), 拡張子(eg .cpp, .cs, .js) のいずれかで指定する.",
-  "configuration.blockComment.patterns.description": "コメント範囲を示すパターン."
+  "configuration.saveLocation.description": "集めた言語設定を保存する場所を指定する.",
+  "configuration.languages.description": "保存された言語設定.",
+  "configuration.languages.aliases.description": "言語の別名.",
+  "configuration.languages.filenames.description": "言語に関連付けられたファイル名.",
+  "configuration.languages.extensions.description": "言語に関連付けられたファイル拡張子.",
+  "configuration.languages.lineComments.description": "行コメントを開始する文字列.",
+  "configuration.languages.blockComments.description": "ブロックコメントの開始と終了を示す文字列.",
+  "configuration.languages.blockStrings.description": "複数行文字列(ヒアドキュメント)の先頭と末尾を示す文字列."
 }

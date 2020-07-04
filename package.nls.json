@@ -3,7 +3,8 @@
   "commands.countInDirectory.title": "Count lines in directory",
   "commands.countInWorkspace.title": "Count lines in workspace",
   "commands.outputAvailableLanguages.title": "Check available languages",
-  "configuration.showInStatusBar.description": "Whether to show the count result of the current file on the status bar in real time.",
+  "commands.saveLanguageConfigurations.title": "Save the collected language configurations",
+  
   "configuration.useGitignore.description": "Whether to use '.gitignore' files for excluding files.",
   "configuration.useFilesExclude.description": "Whether to use setting 'files.exclude' for excluding files.",
   "configuration.printNumberWithCommas.description": "Whether to print a number with commas as thousands separators.(except for CSV)",
@@ -17,7 +18,12 @@
   "configuration.outputAsMarkdown.description": "Whether to output the result as a Markdown file.",
   "configuration.outputMarkdownSeparately.description": "Whether to output summary and details separately.",
   "configuration.outputPreviewType.description": "Type of output file to preview after counting.",
-  "configuration.blockComment.description": "Define patterns indicating the beginning and end of the block document(here document).\nIt is used to distinguish between strings that span multiple lines, and the comment lines displayed in it are considered code lines.\n - types: Language types. Allows you to specify languageId(eg cpp, csharp, javascript...), aliases(eg C++, C#, JavaScript), and extensions(eg .cpp, .cs, .js).\n - patterns: patterns indicating the range of comments.",
-  "configuration.blockComment.types.description": "Language types. \nAllows you to specify languageId(eg cpp, csharp, javascript...), aliases(eg C++, C#, JavaScript), and extensions(eg .cpp, .cs, .js).",
-  "configuration.blockComment.patterns.description": "patterns indicating the range of comments."
+  "configuration.saveLocation.description": "Specify where to store the collected language configurations.",
+  "configuration.languages.description": "Saved Language Configurations.",
+  "configuration.languages.aliases.description": "Name aliases for the language.",
+  "configuration.languages.filenames.description": "Filenames associated to the language.",
+  "configuration.languages.extensions.description": "File extensions associated to the language.",
+  "configuration.languages.lineComments.description": "The character sequence that starts a line comment.",
+  "configuration.languages.blockComments.description": "The character sequence indicating the beginning and end of the block comment.",
+  "configuration.languages.blockStrings.description": "The character sequence indicating the beginning and end of the block document(here document)."
 }

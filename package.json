@@ -2,13 +2,13 @@
   "name": "vscode-counter",
   "displayName": "VS Code Counter",
   "description": "Count lines of code in many programming languages.",
-  "version": "1.3.5",
+  "version": "2.0.0",
   "publisher": "uctakeoff",
   "author": {
     "name": "Ushiyama Kentaro"
   },
   "engines": {
-    "vscode": "^1.40.0"
+    "vscode": "^1.46.0"
   },
   "galleryBanner": {
     "color": "#BF9C68",
@@ -26,18 +26,18 @@
     "Programming Languages"
   ],
   "keywords": [
-    "code",
     "count",
-    "counter",
+    "loc",
+    "code",
     "step",
     "line"
   ],
   "activationEvents": [
-    "*",
     "onCommand:extension.vscode-counter.countInFile",
     "onCommand:extension.vscode-counter.countInDirectory",
     "onCommand:extension.vscode-counter.countInWorkspace",
-    "onCommand:extension.vscode-counter.outputAvailableLanguages"
+    "onCommand:extension.vscode-counter.outputAvailableLanguages",
+    "onCommand:extension.vscode-counter.saveLanguageConfigurations"
   ],
   "contributes": {
     "commands": [
@@ -64,6 +64,12 @@
         "category": "VSCodeCounter",
         "title": "%commands.outputAvailableLanguages.title%",
         "icon": "icon.png"
+      },
+      {
+        "command": "extension.vscode-counter.saveLanguageConfigurations",
+        "category": "VSCodeCounter",
+        "title": "%commands.saveLanguageConfigurations.title%",
+        "icon": "icon.png"
       }
     ],
     "menus": {
@@ -79,11 +85,6 @@
       "type": "object",
       "title": "VSCode Counter",
       "properties": {
-        "VSCodeCounter.showInStatusBar": {
-          "description": "%configuration.showInStatusBar.description%",
-          "type": "boolean",
-          "default": false
-        },
         "VSCodeCounter.useGitignore": {
           "description": "%configuration.useGitignore.description%",
           "type": "boolean",
@@ -171,72 +172,80 @@
           ],
           "default": "markdown"
         },
-        "VSCodeCounter.blockComment": {
-          "description": "%configuration.blockComment.description%",
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "types": {
-                "description": "%configuration.blockComment.types.description%",
-                "type": "array",
-                "minItems": 1,
-                "items": {
-                  "type": "string"
-                }
-              },
-              "patterns": {
-                "description": "%configuration.blockComment.patterns.description%",
-                "type": "array",
-                "items": {
+        "VSCodeCounter.saveLocation": {
+          "description": "%configuration.saveLocation.description%",
+          "type": "string",
+          "enum": [
+            "global settings",
+            "workspace settings",
+            "output directory"
+          ],
+          "default": "global settings"
+        },
+        "VSCodeCounter.languages": {
+          "description": "%configuration.languages.description%",
+          "type": "object",
+          "default": {},
+          "patternProperties": {
+            ".*": {
+              "type": "object",
+              "title": "language configuration",
+              "properties": {
+                "aliases": {
                   "type": "array",
-                  "minItems": 2,
-                  "maxItems": 2,
+                  "description": "%configuration.languages.aliases.description%",
                   "items": {
                     "type": "string"
+                  }
+                },
+                "filenames": {
+                  "type": "array",
+                  "description": "%configuration.languages.filenames.description%",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "extensions": {
+                  "type": "array",
+                  "description": "%configuration.languages.extensions.description%",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "lineComments": {
+                  "type": "array",
+                  "description": "%configuration.languages.lineComments.description%",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "blockComments": {
+                  "type": "array",
+                  "description": "%configuration.languages.blockComments.description%",
+                  "items": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "blockStrings": {
+                  "type": "array",
+                  "description": "%configuration.languages.blockStrings.description%",
+                  "items": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                      "type": "string"
+                    }
                   }
                 }
               }
             }
-          },
-          "default": [
-            {
-              "types": [
-                "cpp"
-              ],
-              "patterns": [
-                [
-                  "R\"(",
-                  ")\""
-                ]
-              ]
-            },
-            {
-              "types": [
-                "lua"
-              ],
-              "patterns": [
-                [
-                  "[[",
-                  "]]"
-                ]
-              ]
-            },
-            {
-              "types": [
-                ".js",
-                ".jsx",
-                ".ts",
-                ".tsx"
-              ],
-              "patterns": [
-                [
-                  "`",
-                  "`"
-                ]
-              ]
-            }
-          ]
+          }
         }
       }
     }
@@ -250,20 +259,20 @@
     "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
-    "@types/glob": "^7.1.1",
+    "@types/glob": "^7.1.2",
     "@types/graceful-fs": "^4.1.3",
     "@types/minimatch": "^3.0.3",
-    "@types/mocha": "^5.2.7",
-    "@types/node": "^12.11.7",
-    "@types/vscode": "^1.40.0",
-    "glob": "^7.1.5",
-    "mocha": "^6.2.2",
-    "tslint": "^5.20.0",
-    "typescript": "^3.6.4",
-    "vscode-test": "^1.2.2"
+    "@types/mocha": "^7.0.2",
+    "@types/node": "^14.0.14",
+    "@types/vscode": "^1.46.0",
+    "glob": "^7.1.6",
+    "mocha": "^8.0.1",
+    "tslint": "^6.1.2",
+    "typescript": "^3.9.6",
+    "vscode-test": "^1.4.0"
   },
   "dependencies": {
-    "jsonc-parser": "^2.2.0",
+    "jsonc-parser": "^2.2.1",
     "minimatch": "^3.0.4"
   }
 }
