@@ -7,9 +7,9 @@ VS Code extension: counts blank lines, comment lines, and physical lines of sour
 
 ## VSCode Counter 2.0 is released!
 
-* Experimental support for "**VSCode Remove Development**".
+* Experimental support for "**VSCode Remote Development**".
 
-    When using VSCode Counter in *VSCode Remove Development*, use the `Save language configurations` function You will need to. 
+    When using VSCode Counter in *VSCode Remote Development*, use the `Save language configurations` function You will need to. 
     [See below for more information](#save-language-configurations).
 
 ## Features
