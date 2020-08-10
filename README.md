@@ -41,6 +41,10 @@ VS Code extension: counts blank lines, comment lines, and physical lines of sour
 
     ![](images/realtime_counter.png)
 
+* Count the range of the selected text
+
+    ![](images/realtime_counter-select.gif)
+
 ### Check available languages
 
 * Open the command palette and select  `VSCodeCounter: Check available languages`.

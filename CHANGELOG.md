@@ -7,6 +7,12 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 * workspace counter in status bar.
 
+## [2.1.0]
+
+### Added
+
+- New Function : Count the range of the selected text.
+
 ## [2.0.0]
 
 ### Added
