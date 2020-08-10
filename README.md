@@ -7,9 +7,9 @@ VS Code extension: counts blank lines, comment lines, and physical lines of sour
 
 ## VSCode Counter 2.0 is released!
 
-* Experimental support for "**VSCode Remove Development**".
+* Experimental support for "**VSCode Remote Development**".
 
-    When using VSCode Counter in *VSCode Remove Development*, use the `Save language configurations` function You will need to. 
+    When using VSCode Counter in *VSCode Remote Development*, use the `Save language configurations` function You will need to. 
     [See below for more information](#save-language-configurations).
 
 ## Features
@@ -41,6 +41,10 @@ VS Code extension: counts blank lines, comment lines, and physical lines of sour
 
     ![](images/realtime_counter.png)
 
+* Count the range of the selected text
+
+    ![](images/realtime_counter-select.gif)
+
 ### Check available languages
 
 * Open the command palette and select  `VSCodeCounter: Check available languages`.
@@ -52,9 +56,9 @@ VS Code extension: counts blank lines, comment lines, and physical lines of sour
 
 **VSCode Counter** is able to aggregate in unknown languages by referring to the information in the installed language extensions. However, I found out that **this information is not available in Remote Development**.
 
-Therefore, I modified VSCode Counter's ability to **collecting VSCode language extensions** so that it can be called as an independent function. The idea is to collect the information once in the local environment and store it so that it can be used remotely.
+Therefore, VSCode Counter's ability of **collecting VSCode language extensions** is now called as an independent function. The idea is to collect the information once in the local environment and store it so that it can be used remotely.
 
-* First, launch VSCode on your local.
+* First, launch VSCode on your local server.
 * Then, open the command palette and select  `VSCodeCounter: Save the collected language configurations`.
 * Then *settings.json* will store the configuration information collected from the current language extensions .
     ![](images/save_lang.png)

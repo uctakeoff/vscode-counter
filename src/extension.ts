@@ -34,8 +34,8 @@ export function activate(context: vscode.ExtensionContext) {
     const codeCountController = new CodeCounterController();
     context.subscriptions.push(
         codeCountController,
-        vscode.commands.registerCommand('extension.vscode-counter.countInWorkspace', () => codeCountController.countInWorkspace()),
-        vscode.commands.registerCommand('extension.vscode-counter.countInDirectory', (targetDir: vscode.Uri|undefined) => codeCountController.countInDirectory(targetDir)),
+        vscode.commands.registerCommand('extension.vscode-counter.countInWorkspace', () => codeCountController.countLinesInWorkSpace()),
+        vscode.commands.registerCommand('extension.vscode-counter.countInDirectory', (targetDir: vscode.Uri|undefined) => codeCountController.countLinesInDirectory(targetDir)),
         vscode.commands.registerCommand('extension.vscode-counter.countInFile', () => codeCountController.toggleVisible()),
         vscode.commands.registerCommand('extension.vscode-counter.saveLanguageConfigurations', () => codeCountController.saveLanguageConfigurations()),
         vscode.commands.registerCommand('extension.vscode-counter.outputAvailableLanguages', () => codeCountController.outputAvailableLanguages())
@@ -66,9 +66,10 @@ class CodeCounterController {
         // subscribe to selection change and editor activation events
         let subscriptions: vscode.Disposable[] = [];
         vscode.window.onDidChangeActiveTextEditor(this.onDidChangeActiveTextEditor, this, subscriptions);
+        vscode.window.onDidChangeTextEditorSelection(this.onDidChangeTextEditorSelection, this, subscriptions);
         vscode.workspace.onDidChangeConfiguration(this.onDidChangeConfiguration, this, subscriptions);
         vscode.workspace.onDidChangeTextDocument(this.onDidChangeTextDocument, this, subscriptions);
-        vscode.workspace.onDidChangeWorkspaceFolders(this.onDidChangeWorkspaceFolders, this, subscriptions);
+        // vscode.workspace.onDidChangeWorkspaceFolders(this.onDidChangeWorkspaceFolders, this, subscriptions);
         // create a combined disposable from both event subscriptions
         this.disposable = vscode.Disposable.from(...subscriptions);
     }
@@ -80,6 +81,45 @@ class CodeCounterController {
         this.disposable.dispose();
         this.codeCounter_ = null;
     }
+    // private onDidChangeWorkspaceFolders(e: vscode.WorkspaceFoldersChangeEvent) {
+    //     log(`onDidChangeWorkspaceFolders()`);
+    //     // e.added.forEach((f) =>   log(` added   [${f.index}] ${f.name} : ${f.uri}`));
+    //     // e.removed.forEach((f) => log(` removed [${f.index}] ${f.name} : ${f.uri}`));
+    //     // vscode.workspace.workspaceFolders?.forEach((f) => log(` [${f.index}] ${f.name} : ${f.uri}`));
+    // }
+    private onDidChangeActiveTextEditor(e: vscode.TextEditor|undefined) {
+        if (this.codeCounter_) {
+            // log(`onDidChangeActiveTextEditor(${!e ? 'undefined' : e.document.uri})`);
+            this.countLinesInEditor(e);
+        }
+    }
+    private onDidChangeTextEditorSelection(e: vscode.TextEditorSelectionChangeEvent) {
+        if (this.codeCounter_) {
+            // log(`onDidChangeTextEditorSelection(${e.selections.length}selections, ${e.selections[0].isEmpty} )`, e.selections[0]);
+            this.countLinesInEditor(e.textEditor);
+        }
+    }
+    private onDidChangeTextDocument(e: vscode.TextDocumentChangeEvent) {
+        if (this.codeCounter_) {
+            // log(`onDidChangeTextDocument(${e.document.uri})`);
+            this.countLinesOfFile(e.document);
+        }
+    }
+    private onDidChangeConfiguration() {
+        // log(`onDidChangeConfiguration()`);
+        this.codeCounter_ = null;
+        this.countLinesInEditor(vscode.window.activeTextEditor);
+    }
+    public toggleVisible() {
+        if (!this.statusBarItem) {
+            this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
+            this.countLinesInEditor(vscode.window.activeTextEditor);
+        } else {
+            this.statusBarItem.dispose();
+            this.statusBarItem = null;
+        }
+    }
+
     private async getCodeCounter() {
         if (this.codeCounter_) {
             return this.codeCounter_
@@ -109,13 +149,13 @@ class CodeCounterController {
         .catch(reason => showError(`outputAvailableLanguages() failed.`, reason));
     }
 
-    public async countInDirectory(targetDir: vscode.Uri|undefined) {
+    public async countLinesInDirectory(targetDir: vscode.Uri|undefined) {
         try {
             const folder = await currentWorkspaceFolder();
             if (!folder) {
                 showError(`No open workspace`);
             } else if (targetDir) {
-                this.countLinesInDirectory(targetDir, folder.uri);
+                this.countLinesInDirectory_(targetDir, folder.uri);
             } else {
                 const option = {
                     value : folder.uri.toString(true),
@@ -124,74 +164,60 @@ class CodeCounterController {
                 };
                 const uri = await vscode.window.showInputBox(option);
                 if (uri) {
-                    this.countLinesInDirectory(vscode.Uri.parse(uri), folder.uri);
+                    this.countLinesInDirectory_(vscode.Uri.parse(uri), folder.uri);
                 }
             }
         } catch (e) {
-            showError(`countInDirectory() failed.`, e.message);
+            showError(`countLinesInDirectory() failed.`, e.message);
         }
     }
-    public async countInWorkspace() {
+    public async countLinesInWorkSpace() {
         try {
             const folder = await currentWorkspaceFolder();
             if (folder) {
-                this.countLinesInDirectory(folder.uri, folder.uri);
+                this.countLinesInDirectory_(folder.uri, folder.uri);
             } else {
                 showError(`No folder are open.`);
             }
         } catch (e) {
-            showError(`countInWorkspace() failed.`, e.message);
+            showError(`countLinesInWorkSpace() failed.`, e.message);
         }
     }
-    private countLinesInDirectory(targetUri: vscode.Uri, workspaceDir: vscode.Uri) {
+    private countLinesInDirectory_(targetUri: vscode.Uri, workspaceDir: vscode.Uri) {
         const conf = vscode.workspace.getConfiguration(CONFIGURATION_SECTION);
         const outputDir = buildUri(workspaceDir, conf.get('outputDirectory', '.VSCodeCounter'));
         this.getCodeCounter()
         .then(c => countLinesInDirectory(c, targetUri, outputDir, conf, this.toOutputChannel))
         .then(results => outputResults(targetUri, results, outputDir, conf))
         .catch(reason => showError(`countLinesInDirectory() failed.`, reason));
-   }
-
-    private onDidChangeWorkspaceFolders(e: vscode.WorkspaceFoldersChangeEvent) {
-        log(`onDidChangeWorkspaceFolders()`);
-        // e.added.forEach((f) =>   log(` added   [${f.index}] ${f.name} : ${f.uri}`));
-        // e.removed.forEach((f) => log(` removed [${f.index}] ${f.name} : ${f.uri}`));
-        // vscode.workspace.workspaceFolders?.forEach((f) => log(` [${f.index}] ${f.name} : ${f.uri}`));
     }
-    private onDidChangeActiveTextEditor(e: vscode.TextEditor|undefined) {
-        if (this.codeCounter_) {
-            log(`onDidChangeActiveTextEditor(${!e ? 'undefined' : e.document.uri})`);
-            this.countFile(e?.document);
-        }
-    }
-    private onDidChangeTextDocument(e: vscode.TextDocumentChangeEvent) {
-        if (this.codeCounter_) {
-            log(`onDidChangeTextDocument(${e.document.uri})`);
-            this.countFile(e.document);
-        }
-    }
-    private onDidChangeConfiguration() {
-        log(`onDidChangeConfiguration()`);
-        this.codeCounter_ = null;
-        this.countFile(vscode.window.activeTextEditor?.document);
-    }
-
-    public toggleVisible() {
-        if (!this.statusBarItem) {
-            this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
-            this.countFile(vscode.window.activeTextEditor?.document);
+    private countLinesInEditor(editor: vscode.TextEditor|undefined) {
+        const doc = editor?.document;
+        if (!editor || !doc) {
+            this.showStatusBar(`${EXTENSION_NAME}:Unsupported`);
+        } else if (editor.selection.isEmpty) {
+            this.countLinesOfFile(doc);
         } else {
-            this.statusBarItem.dispose();
-            this.statusBarItem = null;
+            this.getCodeCounter().then(c =>{
+                const lineCounter = c.getById(doc.languageId) || c.getByUri(doc.uri);
+                if (lineCounter) {
+                    const result = editor.selections
+                        .map(s => lineCounter.count(doc.getText(s)))
+                        .reduce((prev, cur) => {
+                            return {
+                                code: prev.code + cur.code,
+                                comment: prev.comment + cur.comment,
+                                blank: prev.blank + cur.blank,
+                            };
+                        }, {code:0, comment:0, blank:0});
+                    this.showStatusBar(`Selected Code:${result.code} Comment:${result.comment} Blank:${result.blank}`);
+                } else {
+                    this.showStatusBar(`${EXTENSION_NAME}:Unsupported`);
+                }
+            });
         }
     }
-    private showStatusBar(text: string) {
-        if (this.statusBarItem) {
-            this.statusBarItem.show();
-            this.statusBarItem.text = text;
-        }
-    }
-    private countFile(doc: vscode.TextDocument|undefined) {
+    private countLinesOfFile(doc: vscode.TextDocument|undefined) {
         if (!doc) {
             this.showStatusBar(`${EXTENSION_NAME}:Unsupported`);
         } else {
@@ -206,6 +232,12 @@ class CodeCounterController {
             });
         }
     }
+    private showStatusBar(text: string) {
+        if (this.statusBarItem) {
+            this.statusBarItem.show();
+            this.statusBarItem.text = text;
+        }
+    }
     private toOutputChannel(text: string) {
         if (!this.outputChannel) {
             this.outputChannel = vscode.window.createOutputChannel(EXTENSION_NAME);
@@ -213,7 +245,6 @@ class CodeCounterController {
         this.outputChannel.show();
         this.outputChannel.appendLine(text);
     }
-
 }
 const encodingTable = new Map<string, string>([
     ['big5hkscs',    'big5-hkscs'],
