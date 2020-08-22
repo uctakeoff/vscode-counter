@@ -12,6 +12,7 @@
   "configuration.endOfLine.description": "出力ファイルで使用する改行文字.",
   "configuration.exclude.description": "ファイルとフォルダーを除外するための glob パターン.",
   "configuration.include.description": "ファイルとフォルダーを追加するための glob パターン.",
+  "configuration.history.description": "最近の結果を履歴として保持する数. 1 より大きいとき 結果をディレクトリを分けて保存する.",
   "configuration.outputDirectory.description": "結果出力先のディレクトリパス.",
   "configuration.outputAsText.description": "結果をテキストファイルで出力する.",
   "configuration.outputAsCSV.description": "結果をCSVファイルで出力する.",

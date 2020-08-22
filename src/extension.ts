@@ -14,8 +14,10 @@ const EXTENSION_ID = 'uctakeoff.vscode-counter';
 const EXTENSION_NAME = 'VSCodeCounter';
 const CONFIGURATION_SECTION = 'VSCodeCounter';
 const toZeroPadString = (num: number, fig: number) => num.toString().padStart(fig, '0');
-const dateToString = (date: Date) => `${date.getFullYear()}-${toZeroPadString(date.getMonth()+1, 2)}-${toZeroPadString(date.getDate(), 2)}`
-                + ` ${toZeroPadString(date.getHours(), 2)}:${toZeroPadString(date.getMinutes(), 2)}:${toZeroPadString(date.getSeconds(), 2)}`;
+const toLocalDateString = (date: Date, delims:[string,string,string] = ['-',' ',':']) => {
+    return `${date.getFullYear()}${delims[0]}${toZeroPadString(date.getMonth()+1, 2)}${delims[0]}${toZeroPadString(date.getDate(), 2)}${delims[1]}`
+        + `${toZeroPadString(date.getHours(), 2)}${delims[2]}${toZeroPadString(date.getMinutes(), 2)}${delims[2]}${toZeroPadString(date.getSeconds(), 2)}`;
+}
 const toStringWithCommas = (obj: any) => {
     if (typeof obj === 'number') {
         return new Intl.NumberFormat('en-US').format(obj);
@@ -183,13 +185,44 @@ class CodeCounterController {
             showError(`countLinesInWorkSpace() failed.`, e.message);
         }
     }
-    private countLinesInDirectory_(targetUri: vscode.Uri, workspaceDir: vscode.Uri) {
+    private async countLinesInDirectory_(targetUri: vscode.Uri, workspaceDir: vscode.Uri) {
+        const date = new Date();
         const conf = vscode.workspace.getConfiguration(CONFIGURATION_SECTION);
+        const confFiles = vscode.workspace.getConfiguration("files", null);
+
         const outputDir = buildUri(workspaceDir, conf.get('outputDirectory', '.VSCodeCounter'));
-        this.getCodeCounter()
-        .then(c => countLinesInDirectory(c, targetUri, outputDir, conf, this.toOutputChannel))
-        .then(results => outputResults(targetUri, results, outputDir, conf))
-        .catch(reason => showError(`countLinesInDirectory() failed.`, reason));
+        const includes = conf.get<string[]>('include', ['**/*']);
+        const excludes = conf.get<string[]>('exclude', []);
+        if (conf.get('useFilesExclude', true)) {
+            excludes.push(...Object.keys(confFiles.get<object>('exclude', {})));
+        }
+        excludes.push(vscode.workspace.asRelativePath(outputDir));
+        const encoding = confFiles.get('encoding', 'utf8');
+        const useGitignore = conf.get('useGitignore', true);
+        const targetFiles = await findTargetFiles(targetUri, `{${includes.join(',')}}`, `{${excludes.join(',')}}`, useGitignore);
+        
+        const counter = await this.getCodeCounter();
+        const ignoreUnsupportedFile = conf.get('ignoreUnsupportedFile', true);
+        const results = await countLines(counter, targetFiles, encoding, ignoreUnsupportedFile, this.toOutputChannel);
+        if (results.length <= 0) {
+            showError(`There was no target file.`);
+            return;
+        }
+        const historyCount = conf.get('history', 5);
+        if (historyCount > 0) {
+            await outputResults(date, targetUri, results, buildUri(outputDir, toLocalDateString(date, ['-','_','-'])), conf);
+            const regex = /^\d\d\d\d-\d\d-\d\d\_\d\d-\d\d-\d\d$/;
+            const outputSubDirs = (await vscode.workspace.fs.readDirectory(outputDir))
+                    .filter(d => (d[1] == vscode.FileType.Directory) && regex.test(d[0]))
+                    .map(d => d[0])
+                    .sort();
+            if (outputSubDirs.length > historyCount) {
+                outputSubDirs.length -= historyCount;
+                outputSubDirs.forEach(dirname => vscode.workspace.fs.delete(buildUri(outputDir, dirname), {recursive:true}));
+            }
+        } else {
+           await outputResults(date, targetUri, results, outputDir, conf);
+        }
     }
     private countLinesInEditor(editor: vscode.TextEditor|undefined) {
         const doc = editor?.document;
@@ -324,26 +357,14 @@ function readFileAll(fileUris: vscode.Uri[]) : Promise<{uri:vscode.Uri, data:Uin
         }
     });
 }
-function countLinesInDirectory(lineCounterTable: LineCounterTable, targetUri: vscode.Uri, outputDir: vscode.Uri, configuration: vscode.WorkspaceConfiguration, consoleOut:(text:string)=>void) {
-    log(`countLinesInDirectory : ${targetUri}, output dir: ${outputDir.fsPath}`);
-    const confFiles = vscode.workspace.getConfiguration("files", null);
-    const includes = configuration.get<string[]>('include', ['**/*']);
-    const excludes = configuration.get<string[]>('exclude', []);
-    if (configuration.get('useFilesExclude', true)) {
-        excludes.push(...Object.keys(confFiles.get<object>('exclude', {})));
-    }
-    const encoding = confFiles.get('encoding', 'utf8');
-    const decoder = new TextDecoder(encodingTable.get(encoding) || encoding);
+function findTargetFiles(targetUri: vscode.Uri, include: vscode.GlobPattern, exclude: vscode.GlobPattern, useGitignore: boolean) {
+    log(`includes : "${include}"`);
+    log(`excludes : "${exclude}"`);
     const decoderU8 = new TextDecoder('utf8');
-
-    excludes.push(vscode.workspace.asRelativePath(outputDir));
-    log(`includes : "${includes.join('", "')}"`);
-    log(`excludes : "${excludes.join('", "')}"`);
-
     return new Promise((resolve: (p: vscode.Uri[])=> void, reject: (reason: any) => void) => {
-        vscode.workspace.findFiles(`{${includes.join(',')}}`, `{${excludes.join(',')}}`).then((files: vscode.Uri[]) => {
+        vscode.workspace.findFiles(include, exclude).then((files: vscode.Uri[]) => {
             const fileUris = files.filter(uri => uri.path.startsWith(targetUri.path));
-            if (configuration.get('useGitignore', true)) {
+            if (useGitignore) {
                 log(`target : ${fileUris.length} files -> use .gitignore`);
                 vscode.workspace.findFiles('**/.gitignore', '').then((gitignoreFiles: vscode.Uri[]) => {
                     gitignoreFiles.forEach(f => log(`use gitignore : ${f}`));
@@ -360,44 +381,45 @@ function countLinesInDirectory(lineCounterTable: LineCounterTable, targetUri: vs
                 resolve(fileUris);
             }
         });
-    }).then((fileUris: vscode.Uri[]) => {
-        log(`target : ${fileUris.length} files`);
-        return new Promise((resolve: (value: Result[])=> void, reject: (reason: string) => void) => {
-            const results: Result[] = [];
-            if (fileUris.length <= 0) {
-                resolve(results);
-            }
-            const ignoreUnsupportedFile = configuration.get('ignoreUnsupportedFile', true);
-            let fileCount = 0;
-            fileUris.forEach(fileUri => {
-                const lineCounter = lineCounterTable.getByUri(fileUri);
-                if (lineCounter) {
-                    vscode.workspace.fs.readFile(fileUri).then(data => {
-                        ++fileCount;
-                        try {
-                            results.push(new Result(fileUri, lineCounter.name, lineCounter.count(decoder.decode(data))));
-                        } catch (e) {
-                            consoleOut(`"${fileUri}" Read Error : ${e.message}.`);
-                            results.push(new Result(fileUri, '(Read Error)'));
-                        }
-                        if (fileCount === fileUris.length) {
-                            resolve(results);
-                        }
-                    },
-                    (reason: any) => {
-                        consoleOut(`"${fileUri}" Read Error : ${reason}.`);
-                        results.push(new Result(fileUri, '(Read Error)'));
-                    });
-                } else {
-                    if (!ignoreUnsupportedFile) {
-                        results.push(new Result(fileUri, '(Unsupported)'));
-                    }
+    });
+}
+function countLines(lineCounterTable: LineCounterTable, fileUris: vscode.Uri[], fileEncoding:string, ignoreUnsupportedFile: boolean, consoleOut:(text:string)=>void) {
+    log(`countLines : target ${fileUris.length} files`);
+    return new Promise((resolve: (value: Result[])=> void, reject: (reason: string) => void) => {
+        const results: Result[] = [];
+        if (fileUris.length <= 0) {
+            resolve(results);
+        }
+        const decoder = new TextDecoder(encodingTable.get(fileEncoding) || fileEncoding);
+        let fileCount = 0;
+        fileUris.forEach(fileUri => {
+            const lineCounter = lineCounterTable.getByUri(fileUri);
+            if (lineCounter) {
+                vscode.workspace.fs.readFile(fileUri).then(data => {
                     ++fileCount;
+                    try {
+                        results.push(new Result(fileUri, lineCounter.name, lineCounter.count(decoder.decode(data))));
+                    } catch (e) {
+                        consoleOut(`"${fileUri}" Read Error : ${e.message}.`);
+                        results.push(new Result(fileUri, '(Read Error)'));
+                    }
                     if (fileCount === fileUris.length) {
                         resolve(results);
                     }
+                },
+                (reason: any) => {
+                    consoleOut(`"${fileUri}" Read Error : ${reason}.`);
+                    results.push(new Result(fileUri, '(Read Error)'));
+                });
+            } else {
+                if (!ignoreUnsupportedFile) {
+                    results.push(new Result(fileUri, '(Unsupported)'));
                 }
-            });
+                ++fileCount;
+                if (fileCount === fileUris.length) {
+                    resolve(results);
+                }
+            }
         });
     });
 }
@@ -578,20 +600,16 @@ class LineCounterTable {
     }
 }
 
-async function outputResults(workspaceUri: vscode.Uri, results: Result[], outputDirUri: vscode.Uri, conf: vscode.WorkspaceConfiguration) {
+async function outputResults(date: Date, workspaceUri: vscode.Uri, results: Result[], outputDirUri: vscode.Uri, conf: vscode.WorkspaceConfiguration) {
     const resultTable = new ResultTable(workspaceUri, results, conf.get('printNumberWithCommas', true) ? toStringWithCommas : (obj:any) => obj.toString() );
     const endOfLine = conf.get('endOfLine', '\n');
     log(`count ${results.length} files`);
-    if (results.length <= 0) {
-        showError(`There was no target file.`);
-        return;
-    }
     const previewType = conf.get<string>('outputPreviewType', '');
     log(`OutputDir : ${outputDirUri}`);
     await makeDirectories(outputDirUri);
     if (conf.get('outputAsText', true)) {
         const resultsUri = buildUri(outputDirUri, 'results.txt');
-        const promise = writeTextFile(resultsUri, resultTable.toTextLines().join(endOfLine));
+        const promise = writeTextFile(resultsUri, resultTable.toTextLines(date).join(endOfLine));
         if (previewType === 'text') {
             promise.then(() => showTextFile(resultsUri)).catch(err => showError(`failed to output text.`, err));
         } else {
@@ -614,7 +632,7 @@ async function outputResults(workspaceUri: vscode.Uri, results: Result[], output
             ? writeTextFile(detailsUri, [
                     '# Details',
                     '',
-                    ...resultTable.toMarkdownHeaderLines(),
+                    ...resultTable.toMarkdownHeaderLines(date),
                     '',
                     `[summary](results.md)`,
                     '',
@@ -625,7 +643,7 @@ async function outputResults(workspaceUri: vscode.Uri, results: Result[], output
                 ).then(() => writeTextFile(resultsUri, [
                     '# Summary',
                     '',
-                    ...resultTable.toMarkdownHeaderLines(),
+                    ...resultTable.toMarkdownHeaderLines(date),
                     '',
                     `[details](details.md)`,
                     '',
@@ -635,7 +653,7 @@ async function outputResults(workspaceUri: vscode.Uri, results: Result[], output
                     ].join(endOfLine))
                 )
             : writeTextFile(resultsUri, [
-                    ...resultTable.toMarkdownHeaderLines(),
+                    ...resultTable.toMarkdownHeaderLines(date),
                     '',
                     ...resultTable.toMarkdownSummaryLines(),
                     '',
@@ -765,7 +783,7 @@ class ResultTable {
             `"Total", "-", ${[...this.langResultTable.values()].map(r => r.code).join(', ')}, ${this.total.comment}, ${this.total.blank}, ${this.total.total}`
         ];
     }
-    public toTextLines() {
+    public toTextLines(date: Date) {
         class TextTableFormatter {
             private valueToString: (obj:any) => string;
             private columnInfo: {title:string, width:number}[];
@@ -804,7 +822,7 @@ class ResultTable {
         const langFormat = new TextTableFormatter(this.valueToString, {title:'language', width:maxLanglen}, {title:'files', width:10}, 
             {title:'code', width:10}, {title:'comment', width:10}, {title:'blank', width:10}, {title:'total', width:10});
         return [
-            `Date : ${dateToString(new Date())}`,
+            `Date : ${toLocalDateString(date)}`,
             `Directory : ${this.targetDirPath}`,
             // `Total : code: ${this.total.code}, comment : ${this.total.comment}, blank : ${this.total.blank}, all ${this.total.total} lines`,
             `Total : ${this.total.files} files,  ${this.total.code} codes, ${this.total.comment} comments, ${this.total.blank} blanks, all ${this.total.total} lines`,
@@ -830,9 +848,9 @@ class ResultTable {
         ];
     }
 
-    public toMarkdownHeaderLines() {
+    public toMarkdownHeaderLines(date: Date) {
         return [
-            `Date : ${dateToString(new Date())}`,
+            `Date : ${toLocalDateString(date)}`,
             '',
             `Directory ${this.targetDirPath}`,
             '',
