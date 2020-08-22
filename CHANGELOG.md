@@ -7,6 +7,12 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 * workspace counter in status bar.
 
+## [2.2.0]
+
+### Added
+
+- New Configuration : `VSCodeCounter.history`.
+
 ## [2.1.0]
 
 ### Added

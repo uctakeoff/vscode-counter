@@ -58,7 +58,7 @@ VS Code extension: counts blank lines, comment lines, and physical lines of sour
 
 Therefore, VSCode Counter's ability of **collecting VSCode language extensions** is now called as an independent function. The idea is to collect the information once in the local environment and store it so that it can be used remotely.
 
-* First, launch VSCode on your local server.
+* First, launch VSCode on your local.
 * Then, open the command palette and select  `VSCodeCounter: Save the collected language configurations`.
 * Then *settings.json* will store the configuration information collected from the current language extensions .
     ![](images/save_lang.png)
@@ -84,5 +84,7 @@ However, you must carry the stored information to the remote environment by your
 * `VSCodeCounter.outputAsMarkdown`: Whether to output the result as a Markdown file.
 * `VSCodeCounter.outputPreviewType`: Type of output file to preview after counting. Choose from `text`, `csv`, `markdown` or `none`.
 * `VSCodeCounter.saveLocation`: Specify where to store the collected language configurations.
+* `VSCodeCounter.history`: Controls the number of recent result to keep in history.
+
 
 **Enjoy!**
