@@ -213,7 +213,7 @@ class CodeCounterController {
             await outputResults(date, targetUri, results, buildUri(outputDir, toLocalDateString(date, ['-','_','-'])), conf);
             const regex = /^\d\d\d\d-\d\d-\d\d\_\d\d-\d\d-\d\d$/;
             const outputSubDirs = (await vscode.workspace.fs.readDirectory(outputDir))
-                    .filter(d => (d[1] == vscode.FileType.Directory) && regex.test(d[0]))
+                    .filter(d => ((d[1] & vscode.FileType.Directory) != 0) && regex.test(d[0]))
                     .map(d => d[0])
                     .sort();
             if (outputSubDirs.length > historyCount) {
@@ -223,6 +223,7 @@ class CodeCounterController {
         } else {
            await outputResults(date, targetUri, results, outputDir, conf);
         }
+        log(` finished ${(new Date().getTime() - date.getTime())}ms`)
     }
     private countLinesInEditor(editor: vscode.TextEditor|undefined) {
         const doc = editor?.document;
@@ -730,8 +731,8 @@ class MarkdownTableFormatter {
             if (typeof d === 'string') {
                 return d;
             }
-            // return `[${path.relative(this.dir, d.fsPath)}](${d})`;
-            return `[${vscode.workspace.asRelativePath(d)}](/${vscode.workspace.asRelativePath(d)})`;
+            const relativePath = vscode.workspace.asRelativePath(d);
+            return `[${relativePath}](/${relativePath})`;
         }) .join(' | ') + ' |';
     }
 }
@@ -926,11 +927,11 @@ function getOrSet<K,V>(map: Map<K,V>, key: K, otherwise: () => V) {
 }
 function makeDirectories_(dirpath: vscode.Uri, resolve: ()=> void, reject: (reason: string) => void) {
     // log(`makeDirectories ${dirpath}`);
-    vscode.workspace.fs.stat(dirpath).then((value) => {
-        if (value.type === vscode.FileType.File) {
-            reject(`${dirpath} is not directory.`);
-        } else {
+    vscode.workspace.fs.stat(dirpath).then((fileStat) => {
+        if ((fileStat.type & vscode.FileType.Directory) != 0) {
             resolve();
+        } else {
+            reject(`${dirpath} is not directory.`);
         }
     }, (reason) => {
         log(`vscode.workspace.fs.stat failed: ${reason}`);

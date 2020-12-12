@@ -5,6 +5,10 @@ VS Code extension: counts blank lines, comment lines, and physical lines of sour
 * [github](https://github.com/uctakeoff/vscode-counter)
 * [Marketplace](https://marketplace.visualstudio.com/items?itemName=uctakeoff.vscode-counter)
 
+This extension uses other language extensions to determine the line of code.Therefore, you may need to install the language extension to support a new language.
+
+Conversely, as the number of language extensions increases, the range of support for this feature also increases.
+
 ## VSCode Counter 2.0 is released!
 
 * Experimental support for "**VSCode Remote Development**".
