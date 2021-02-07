@@ -223,7 +223,7 @@ class CodeCounterController {
         } else {
            await outputResults(date, targetUri, results, outputDir, conf);
         }
-        log(` finished ${(new Date().getTime() - date.getTime())}ms`)
+        log(` finished. ${(new Date().getTime() - date.getTime())}ms`)
     }
     private countLinesInEditor(editor: vscode.TextEditor|undefined) {
         const doc = editor?.document;
@@ -364,7 +364,7 @@ function findTargetFiles(targetUri: vscode.Uri, include: vscode.GlobPattern, exc
     const decoderU8 = new TextDecoder('utf8');
     return new Promise((resolve: (p: vscode.Uri[])=> void, reject: (reason: any) => void) => {
         vscode.workspace.findFiles(include, exclude).then((files: vscode.Uri[]) => {
-            const fileUris = files.filter(uri => uri.path.startsWith(targetUri.path));
+            const fileUris = files.filter(uri => !path.relative(targetUri.path, uri.path).startsWith(".."));
             if (useGitignore) {
                 log(`target : ${fileUris.length} files -> use .gitignore`);
                 vscode.workspace.findFiles('**/.gitignore', '').then((gitignoreFiles: vscode.Uri[]) => {

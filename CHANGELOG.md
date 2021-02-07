@@ -7,6 +7,18 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 * workspace counter in status bar.
 
+## [2.2.2]
+
+### Fixed
+
+- Fixed Issue [#48](https://github.com/uctakeoff/vscode-counter/issues/48).
+
+## [2.2.1]
+
+### Fixed
+
+- Misconceptions about FileStat.
+
 ## [2.2.0]
 
 ### Added
