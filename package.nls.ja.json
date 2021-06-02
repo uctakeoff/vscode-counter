@@ -7,6 +7,7 @@
 
   "configuration.useGitignore.description": "対象ファイルを除外するために '.gitignore' を使う.",
   "configuration.useFilesExclude.description": "対象ファイルを除外するために 'files.exclude' 設定を使う.",
+  "configuration.maxOpenFiles.description": "VSCodeCounter が同時に読み取ることのできるファイルの最大数.",
   "configuration.printNumberWithCommas.description": "数値をカンマ区切りで出力する (CSVを除く).",
   "configuration.ignoreUnsupportedFile.description": "サポートしないファイルを無視する.",
   "configuration.endOfLine.description": "出力ファイルで使用する改行文字.",

@@ -7,6 +7,12 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 * workspace counter in status bar.
 
+## [2.3.0]
+
+### Fixed
+
+- Error on large code bases
+
 ## [2.2.2]
 
 ### Fixed

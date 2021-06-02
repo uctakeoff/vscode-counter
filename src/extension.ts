@@ -27,6 +27,7 @@ const toStringWithCommas = (obj: any) => {
 };
 const log = (message: string, ...items:any[]) => console.log(`[${EXTENSION_NAME}] ${new Date().toISOString()} ${message}`, ...items);
 const showError = (message: string, ...items:any[]) => vscode.window.showErrorMessage(`[${EXTENSION_NAME}] ${message}`, ...items);
+const sleep = (msec: number) => new Promise(resolve => setTimeout(resolve, msec));
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -186,6 +187,10 @@ class CodeCounterController {
         }
     }
     private async countLinesInDirectory_(targetUri: vscode.Uri, workspaceDir: vscode.Uri) {
+        const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
+        statusBar.show();
+        statusBar.text = `VSCodeCounter: Preparing...`;
+
         const date = new Date();
         const conf = vscode.workspace.getConfiguration(CONFIGURATION_SECTION);
         const confFiles = vscode.workspace.getConfiguration("files", null);
@@ -202,12 +207,14 @@ class CodeCounterController {
         const targetFiles = await findTargetFiles(targetUri, `{${includes.join(',')}}`, `{${excludes.join(',')}}`, useGitignore);
         
         const counter = await this.getCodeCounter();
+        const maxOpenFiles = conf.get('maxOpenFiles', 500);
         const ignoreUnsupportedFile = conf.get('ignoreUnsupportedFile', true);
-        const results = await countLines(counter, targetFiles, encoding, ignoreUnsupportedFile, this.toOutputChannel);
+        const results = await countLines(counter, targetFiles, maxOpenFiles, encoding, ignoreUnsupportedFile, (msg:string) => statusBar.text = `VSCodeCounter: ${msg}`);
         if (results.length <= 0) {
             showError(`There was no target file.`);
             return;
         }
+        statusBar.text = `VSCodeCounter: Totaling...`;
         const historyCount = conf.get('history', 5);
         if (historyCount > 0) {
             await outputResults(date, targetUri, results, buildUri(outputDir, toLocalDateString(date, ['-','_','-'])), conf);
@@ -223,7 +230,8 @@ class CodeCounterController {
         } else {
            await outputResults(date, targetUri, results, outputDir, conf);
         }
-        log(` finished. ${(new Date().getTime() - date.getTime())}ms`)
+        log(` finished. ${(new Date().getTime() - date.getTime())}ms`);
+        statusBar.dispose();
     }
     private countLinesInEditor(editor: vscode.TextEditor|undefined) {
         const doc = editor?.document;
@@ -384,44 +392,57 @@ function findTargetFiles(targetUri: vscode.Uri, include: vscode.GlobPattern, exc
         });
     });
 }
-function countLines(lineCounterTable: LineCounterTable, fileUris: vscode.Uri[], fileEncoding:string, ignoreUnsupportedFile: boolean, consoleOut:(text:string)=>void) {
+function countLines(lineCounterTable: LineCounterTable, fileUris: vscode.Uri[], maxOpenFiles:number, fileEncoding:string, ignoreUnsupportedFile: boolean, showStatus:(text:string)=>void) {
     log(`countLines : target ${fileUris.length} files`);
-    return new Promise((resolve: (value: Result[])=> void, reject: (reason: string) => void) => {
+    return new Promise(async (resolve: (value: Result[])=> void, reject: (reason: string) => void) => {
         const results: Result[] = [];
         if (fileUris.length <= 0) {
             resolve(results);
         }
         const decoder = new TextDecoder(encodingTable.get(fileEncoding) || fileEncoding);
+        const totalFiles = fileUris.length;
         let fileCount = 0;
-        fileUris.forEach(fileUri => {
+        const onFinish = () => {
+            ++fileCount;
+            if (fileCount === totalFiles) {
+                log(`finished : total:${totalFiles} valid:${results.length}`);
+                resolve(results);
+            }
+        };
+        // fileUris.forEach(async fileUri => {
+        for (let i = 0; i < totalFiles; ++i) {
+            const fileUri = fileUris[i];
             const lineCounter = lineCounterTable.getByUri(fileUri);
             if (lineCounter) {
+                
+                while ((i - fileCount) >= maxOpenFiles) {
+                    // log(`sleep : total:${totalFiles} current:${i} finished:${fileCount} valid:${results.length}`);
+                    showStatus(`${fileCount}/${totalFiles}`);
+                    await sleep(50);
+                }
+                
                 vscode.workspace.fs.readFile(fileUri).then(data => {
-                    ++fileCount;
                     try {
                         results.push(new Result(fileUri, lineCounter.name, lineCounter.count(decoder.decode(data))));
                     } catch (e) {
-                        consoleOut(`"${fileUri}" Read Error : ${e.message}.`);
+                        log(`"${fileUri}" Read Error : ${e.message}.`);
                         results.push(new Result(fileUri, '(Read Error)'));
                     }
-                    if (fileCount === fileUris.length) {
-                        resolve(results);
-                    }
+                    onFinish();
                 },
                 (reason: any) => {
-                    consoleOut(`"${fileUri}" Read Error : ${reason}.`);
+                    log(`"${fileUri}" Read Error : ${reason}.`);
                     results.push(new Result(fileUri, '(Read Error)'));
+                    onFinish();
                 });
             } else {
                 if (!ignoreUnsupportedFile) {
                     results.push(new Result(fileUri, '(Unsupported)'));
                 }
-                ++fileCount;
-                if (fileCount === fileUris.length) {
-                    resolve(results);
-                }
+                onFinish();
             }
-        });
+        }
+        // });
     });
 }
 
