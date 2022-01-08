@@ -170,7 +170,7 @@ class CodeCounterController {
                     this.countLinesInDirectory_(vscode.Uri.parse(uri), folder.uri);
                 }
             }
-        } catch (e) {
+        } catch (e: any) {
             showError(`countLinesInDirectory() failed.`, e.message);
         }
     }
@@ -182,7 +182,7 @@ class CodeCounterController {
             } else {
                 showError(`No folder are open.`);
             }
-        } catch (e) {
+        } catch (e: any) {
             showError(`countLinesInWorkSpace() failed.`, e.message);
         }
     }
@@ -424,7 +424,7 @@ function countLines(lineCounterTable: LineCounterTable, fileUris: vscode.Uri[], 
                 vscode.workspace.fs.readFile(fileUri).then(data => {
                     try {
                         results.push(new Result(fileUri, lineCounter.name, lineCounter.count(decoder.decode(data))));
-                    } catch (e) {
+                    } catch (e: any) {
                         log(`"${fileUri}" Read Error : ${e.message}.`);
                         results.push(new Result(fileUri, '(Read Error)'));
                     }
