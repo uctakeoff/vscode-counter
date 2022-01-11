@@ -3,7 +3,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import * as path from 'path';
-import LineCounter from './LineCounter';
+import { LineCounter, Count } from './LineCounter';
 import Gitignore from './Gitignore';
 import * as minimatch from 'minimatch';
 import { buildUri, createTextDecoder, currentWorkspaceFolder, dirUri, makeDirectories, readJsonFile, readTextFiles, showTextFile, writeTextFile } from './vscode-utils';
@@ -236,12 +236,7 @@ class CodeCounterController {
             if (lineCounter) {
                 const result = editor.selections
                     .map(s => lineCounter.count(doc.getText(s)))
-                    .reduce((prev, cur) => {
-                        prev.code += cur.code;
-                        prev.comment += cur.comment;
-                        prev.blank += cur.blank;
-                        return prev;
-                    }, { code: 0, comment: 0, blank: 0 });
+                    .reduce((prev, cur) => prev.add(cur), new Count());
                 this.showStatusBar(`Selected Code:${result.code} Comment:${result.comment} Blank:${result.blank}`);
             } else {
                 this.showStatusBar();
@@ -512,6 +507,14 @@ const outputResults = async (date: Date, workspaceUri: vscode.Uri, results: Resu
     const previewType = conf.get<string>('outputPreviewType', '');
     log(`OutputDir : ${outputDirUri}`);
     await makeDirectories(outputDirUri);
+
+    try {
+        const resultsUri = buildUri(outputDirUri, 'results.json');
+        writeTextFile(resultsUri, JSON.stringify(results.map(r => r.toJson()), undefined, 2));
+    } catch (err: any) {
+        showError(`failed to output json.`, err.message);
+    }
+
     if (conf.get('outputAsText', true)) {
         try {
             const resultsUri = buildUri(outputDirUri, 'results.txt');
@@ -582,46 +585,41 @@ const outputResults = async (date: Date, workspaceUri: vscode.Uri, results: Resu
     }
 }
 
-
-class Result {
+class Result extends Count {
     public uri: vscode.Uri;
     public filename: string;
     public language: string;
-    public code = 0;
-    public comment = 0;
-    public blank = 0;
-    get total(): number {
-        return this.code + this.comment + this.blank;
-    }
-    constructor(uri: vscode.Uri, language: string, value: { code: number, comment: number, blank: number } = { code: -1, comment: 0, blank: 0 }) {
+
+    constructor(uri: vscode.Uri, language: string, value = { code: -1, comment: 0, blank: 0 }) {
+        super(value.code, value.code, value.blank);
         this.uri = uri;
         this.filename = uri.fsPath;
         this.language = language;
-        this.code = value.code;
-        this.comment = value.comment;
-        this.blank = value.blank;
+    }
+    toJson() {
+        return {
+            uri: this.uri.toString(),
+            language: this.language,
+            code: this.code,
+            comment: this.comment,
+            blank: this.blank,
+        };
     }
 }
-class Statistics {
+class Statistics extends Count {
     public name: string;
     public files = 0;
-    public code = 0;
-    public comment = 0;
-    public blank = 0;
-    get total(): number {
-        return this.code + this.comment + this.blank;
-    }
+
     constructor(name: string) {
+        super();
         this.name = name;
     }
-    public append(result: Result) {
+    override add(value: Count) {
         this.files++;
-        this.code += result.code;
-        this.comment += result.comment;
-        this.blank += result.blank;
-        return this;
+        return super.add(value);
     }
 }
+
 class MarkdownTableFormatter {
     private valueToString: (obj: any) => string;
     private columnInfo: { title: string, format: string }[];
@@ -665,15 +663,15 @@ class ResultTable {
             .forEach((result) => {
                 let parent = path.dirname(path.relative(this.targetDirPath, result.filename));
                 while (parent.length >= 0) {
-                    getOrSet(this.dirResultTable, parent, () => new Statistics(parent)).append(result);
+                    getOrSet(this.dirResultTable, parent, () => new Statistics(parent)).add(result);
                     const p = path.dirname(parent);
                     if (p === parent) {
                         break;
                     }
                     parent = p;
                 }
-                getOrSet(this.langResultTable, result.language, () => new Statistics(result.language)).append(result);
-                this.total.append(result);
+                getOrSet(this.langResultTable, result.language, () => new Statistics(result.language)).add(result);
+                this.total.add(result);
             });
     }
     /*
