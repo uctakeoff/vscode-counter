@@ -16,7 +16,7 @@ export const currentWorkspaceFolder = async () => {
     throw Error('workspace not open.');
 }
 
-export const buildUri = (uri: vscode.Uri, filename: string) => uri.with({ path: `${uri.path}/${filename}` });
+export const buildUri = (uri: vscode.Uri, ...names: string[]) => uri.with({ path: `${uri.path}/${names.join('/')}` });
 export const dirUri = (uri: vscode.Uri) => uri.with({ path: path.dirname(uri.path) });
 
 const decoderU8 = new TextDecoder('utf8');
@@ -74,7 +74,8 @@ const vscodeEncodingTable = new Map<string, string>([
 
 export const createTextDecoder = (vscodeTextEncoding: string) => new TextDecoder(vscodeEncodingTable.get(vscodeTextEncoding) || vscodeTextEncoding);
 
-export const readTextFile = async (uri: vscode.Uri) => {
+export const readTextFile = async (baseUri: vscode.Uri, path?: string) => {
+    const uri = path ? buildUri(baseUri, path) : baseUri;
     const data = await vscode.workspace.fs.readFile(uri);
     log(`read ${uri} : ${data.length}B`);
     return decoderU8.decode(data);
@@ -94,8 +95,8 @@ export const readTextFiles = async (uris: vscode.Uri[]) => {
     return ret;
 }
 
-export const readJsonFile = async (uri: vscode.Uri) => {
-    const data = await readTextFile(uri);
+export const readJsonFile = async (baseUri: vscode.Uri, path?: string) => {
+    const data = await readTextFile(baseUri, path);
     return JSONC.parse(data);
 }
 
@@ -128,7 +129,9 @@ export const showTextFile = async (uri: vscode.Uri) => {
     const doc = await vscode.workspace.openTextDocument(uri);
     return await vscode.window.showTextDocument(doc, vscode.ViewColumn.One, true);
 }
-export const writeTextFile = async (uri: vscode.Uri, text: string) => {
+export const writeTextFile = async (baseUri: vscode.Uri, path: string, text: string) => {
+    const uri = buildUri(baseUri, path);
     // log(`writeTextFile : ${uri} ${text.length}B`);
-    return await vscode.workspace.fs.writeFile(uri, encoderU8.encode(text));
+    await vscode.workspace.fs.writeFile(uri, encoderU8.encode(text));
+    return uri;
 }
