@@ -7,6 +7,12 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 * workspace counter in status bar.
 
+## [2.4.0]
+
+### Removed
+
+- disuse config 'outputMarkdownSeparately'
+
 ## [2.3.0]
 
 ### Fixed

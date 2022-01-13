@@ -18,7 +18,6 @@
   "configuration.outputAsText.description": "Whether to output the result as a text file.",
   "configuration.outputAsCSV.description": "Whether to output the result as a CSV file.",
   "configuration.outputAsMarkdown.description": "Whether to output the result as a Markdown file.",
-  "configuration.outputMarkdownSeparately.description": "Whether to output summary and details separately.",
   "configuration.outputPreviewType.description": "Type of output file to preview after counting.",
   "configuration.saveLocation.description": "Specify where to store the collected language configurations.",
   "configuration.languages.description": "Saved Language Configurations.",

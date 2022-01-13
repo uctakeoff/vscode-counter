@@ -88,7 +88,6 @@ const loadConfig = () => {
         outputAsText: conf.get('outputAsText', true),
         outputAsCSV: conf.get('outputAsCSV', true),
         outputAsMarkdown: conf.get('outputAsMarkdown', true),
-        outputMarkdownSeparately: conf.get('outputMarkdownSeparately', true),
     };
 }
 type Config = ReturnType<typeof loadConfig>;
@@ -544,13 +543,8 @@ const outputResults = async (date: Date, targetDirUri: vscode.Uri, results: Resu
     }
     if (conf.outputAsMarkdown) {
         try {
-            let resultsUri: vscode.Uri;
-            if (conf.outputMarkdownSeparately) {
-                await writeTextFile(outputDirUri, `${outputFilename}-details.md`, resultTable.toMarkdownDetails(date, `${outputFilename}.md`));
-                resultsUri = await writeTextFile(outputDirUri, `${outputFilename}.md`, resultTable.toMarkdownSummary(date, `${outputFilename}-details.md`));
-            } else {
-                resultsUri = await writeTextFile(outputDirUri, `${outputFilename}.md`, resultTable.toMarkdown(date));
-            }
+            await writeTextFile(outputDirUri, `${outputFilename}-details.md`, resultTable.toMarkdownDetails(date, `${outputFilename}.md`));
+            const resultsUri = await writeTextFile(outputDirUri, `${outputFilename}.md`, resultTable.toMarkdownSummary(date, `${outputFilename}-details.md`));
             if (conf.outputPreviewType === 'markdown') {
                 vscode.commands.executeCommand("markdown.showPreview", resultsUri);
             }
