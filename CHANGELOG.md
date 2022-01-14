@@ -13,6 +13,10 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 - Counter diff output function
 
+### Changed
+
+- Moved the status bar to the right
+
 ### Removed
 
 - Disuse Configuration : `VSCodeCounter.outputMarkdownSeparately`.

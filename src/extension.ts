@@ -151,7 +151,7 @@ class CodeCounterController {
     }
     public toggleVisible() {
         if (!this.statusBarItem) {
-            this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
+            this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100000);
             this.countLinesInEditor(vscode.window.activeTextEditor);
         } else {
             this.statusBarItem.dispose();
