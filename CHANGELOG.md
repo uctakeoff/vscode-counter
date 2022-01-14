@@ -9,9 +9,13 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [2.4.0]
 
+### Added
+
+- Counter diff output function
+
 ### Removed
 
-- disuse config 'outputMarkdownSeparately'
+- Disuse Configuration : `VSCodeCounter.outputMarkdownSeparately`.
 
 ## [2.3.0]
 

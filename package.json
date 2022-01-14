@@ -174,7 +174,10 @@
             "none",
             "text",
             "csv",
-            "markdown"
+            "markdown",
+            "diff-text",
+            "diff-csv",
+            "diff-markdown"
           ],
           "default": "markdown"
         },

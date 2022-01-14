@@ -6,8 +6,7 @@ import * as path from 'path';
 import { LineCounter, Count } from './LineCounter';
 import Gitignore from './Gitignore';
 import * as minimatch from 'minimatch';
-import { buildUri, createTextDecoder, currentWorkspaceFolder, dirUri, makeDirectories, readJsonFile, readTextFiles, showTextFile, writeTextFile } from './vscode-utils';
-// import { debug } from 'console';
+import { buildUri, createTextDecoder, currentWorkspaceFolder, dirUri, makeDirectories, readJsonFile, readTextFiles, showTextPreview, writeTextFile } from './vscode-utils';
 
 const EXTENSION_ID = 'uctakeoff.vscode-counter';
 const EXTENSION_NAME = 'VSCodeCounter';
@@ -25,7 +24,7 @@ const toStringWithCommas = (obj: any) => {
     }
 };
 const sleep = (msec: number) => new Promise(resolve => setTimeout(resolve, msec));
-const log = (message: string, ...items: any[]) => console.log(`[${EXTENSION_NAME}] ${new Date().toISOString()} ${message}`, ...items);
+const log = (message: string, ...items: any[]) => console.log(`${new Date().toISOString()} ${message}`, ...items);
 const showError = (message: string, ...items: any[]) => vscode.window.showErrorMessage(`[${EXTENSION_NAME}] ${message}`, ...items);
 const registerCommand = (command: string, callback: (...args: any[]) => any, thisArg?: any): vscode.Disposable => {
     return vscode.commands.registerCommand(`extension.vscode-counter.${command}`, async (...args) => {
@@ -228,23 +227,21 @@ class CodeCounterController {
                 throw Error(`There was no target file.`);
             }
             statusBar.text = `VSCodeCounter: Totaling...`;
-            log(`results`, results);
-
-            const outSubdir = buildUri(outputDir, toLocalDateString(date, ['-', '_', '-']));
-            writeTextFile(outSubdir, `results.json`, resultsToJson(results));
-
-            await outputResults(date, targetUri, results, outSubdir, 'results', this.conf);
 
             const regex = /^\d\d\d\d-\d\d-\d\d\_\d\d-\d\d-\d\d$/;
-            const outputSubDirs = (await vscode.workspace.fs.readDirectory(outputDir))
+            const histories = (await vscode.workspace.fs.readDirectory(outputDir))
                 .filter(d => ((d[1] & vscode.FileType.Directory) != 0) && regex.test(d[0]))
                 .map(d => d[0])
-                .sort();
-            if (outputSubDirs.length > this.conf.history) {
-                outputSubDirs.length -= this.conf.history;
-                outputSubDirs.forEach(dirname => vscode.workspace.fs.delete(buildUri(outputDir, dirname), { recursive: true }));
-            }
+                .sort()
+                .map(d => buildUri(outputDir, d));
 
+            const outSubdir = buildUri(outputDir, toLocalDateString(date, ['-', '_', '-']));
+            await outputResults(date, targetUri, results, outSubdir, histories[histories.length - 1], this.conf);
+
+            if (histories.length >= this.conf.history) {
+                histories.length -= this.conf.history - 1;
+                histories.forEach(dir => vscode.workspace.fs.delete(dir, { recursive: true }));
+            }
         } finally {
             log(` finished. ${(new Date().getTime() - date.getTime())}ms`);
             statusBar.dispose();
@@ -455,9 +452,9 @@ const saveLanguageConfigurations = async (langs: { [key: string]: LanguageConf }
             break;
         case "output directory":
             const workFolder = await currentWorkspaceFolder();
-            const outputDirUri = buildUri(workFolder.uri, conf.outputDirectory);
-            await makeDirectories(outputDirUri);
-            await writeTextFile(outputDirUri, 'languages.json', JSON.stringify(langs));
+            const outputDir = buildUri(workFolder.uri, conf.outputDirectory);
+            await makeDirectories(outputDir);
+            await writeTextFile(outputDir, 'languages.json', JSON.stringify(langs));
             break;
         default: break;
     }
@@ -471,8 +468,8 @@ const loadLanguageConfigurations = async (conf: Config): Promise<{ [key: string]
                 return conf.languages;
             case "output directory":
                 const workFolder = await currentWorkspaceFolder();
-                const outputDirUri = buildUri(workFolder.uri, conf.outputDirectory);
-                return await readJsonFile(outputDirUri, 'languages.json');
+                const outputDir = buildUri(workFolder.uri, conf.outputDirectory);
+                return await readJsonFile(outputDir, 'languages.json');
             default: break;
         }
     } catch (e: any) {
@@ -516,41 +513,59 @@ class LineCounterTable {
     }
 }
 
-const outputResults = async (date: Date, targetDirUri: vscode.Uri, results: Result[], outputDirUri: vscode.Uri, outputFilename: string, conf: Config) => {
+const outputFiles = new Map<string, string>([
+    ['text', 'results.txt'],
+    ['diff-text', 'diff.txt'],
+    ['csv', 'results.csv'],
+    ['diff-csv', 'diff.csv'],
+    ['markdown', 'results.md'],
+    ['diff-markdown', 'diff.md'],
+]);
+const outputResults = async (date: Date, targetDirUri: vscode.Uri, results: Result[], outputDir: vscode.Uri, prevOutputDir: vscode.Uri | undefined, conf: Config) => {
+    await makeDirectories(outputDir);
+    writeTextFile(outputDir, `results.json`, resultsToJson(results));
+
     const resultTable = new ResultFormatter(targetDirUri, results, conf.endOfLine, conf.printNumberWithCommas ? toStringWithCommas : undefined);
-    log(`OutputDir : ${outputDirUri}, count ${results.length} files`);
-    await makeDirectories(outputDirUri);
+    log(`OutputDir : ${outputDir}, count ${results.length} files`);
+
+    const diffs: Result[] = [];
+    if (prevOutputDir) {
+        const prevResults: { [uri: string]: Count } = await readJsonFile(prevOutputDir, 'results.json');
+        log(`Previous OutputDir : ${prevOutputDir}, count ${prevResults.length} files`);
+        results.map(r => {
+            const p = prevResults[r.uri.toString()];
+            const diff = p ? r.clone().sub(p) : r;
+            if (!diff.isEmpty) {
+                diffs.push(diff);
+            }
+        });
+    }
+    const diffTable = new ResultFormatter(targetDirUri, diffs, conf.endOfLine, conf.printNumberWithCommas ? toStringWithCommas : undefined);
 
     if (conf.outputAsText) {
-        try {
-            const resultsUri = await writeTextFile(outputDirUri, `${outputFilename}.txt`, resultTable.toTextLines(date));
-            if (conf.outputPreviewType === 'text') {
-                showTextFile(resultsUri);
-            }
-        } catch (err: any) {
-            showError(`failed to output text.`, err.message);
-        }
+        await writeTextFile(outputDir, 'results.txt', resultTable.toTextLines(date));
+        await writeTextFile(outputDir, 'diff.txt', diffTable.toTextLines(date));
     }
     if (conf.outputAsCSV) {
-        try {
-            const resultsUri = await writeTextFile(outputDirUri, `${outputFilename}.csv`, resultTable.toCSVLines());
-            if (conf.outputPreviewType === 'csv') {
-                showTextFile(resultsUri);
-            }
-        } catch (err: any) {
-            showError(`failed to output csv.`, err.message);
-        }
+        await writeTextFile(outputDir, 'results.csv', resultTable.toCSVLines());
+        await writeTextFile(outputDir, 'diff.csv', diffTable.toCSVLines());
     }
     if (conf.outputAsMarkdown) {
-        try {
-            await writeTextFile(outputDirUri, `${outputFilename}-details.md`, resultTable.toMarkdownDetails(date, `${outputFilename}.md`));
-            const resultsUri = await writeTextFile(outputDirUri, `${outputFilename}.md`, resultTable.toMarkdownSummary(date, `${outputFilename}-details.md`));
-            if (conf.outputPreviewType === 'markdown') {
-                vscode.commands.executeCommand("markdown.showPreview", resultsUri);
-            }
-        } catch (err: any) {
-            showError(`failed to output markdown text.`, err.message);
-        }
+        const links: [string, string | undefined][] = [
+            ['summary', 'results.md'],
+            ['details', 'details.md'],
+            ['diff summary', 'diff.md'],
+            ['diff details', 'diff-details.md'],
+            // ['Previous', prevOutputDir ? '/' + vscode.workspace.asRelativePath(buildUri(prevOutputDir, 'results.md')) : undefined],
+        ];
+        await writeTextFile(outputDir, 'results.md', resultTable.toMarkdown(date, 'Summary', false, links.map((l, i) => i === 0 ? [l[0], undefined] : l)));
+        await writeTextFile(outputDir, 'details.md', resultTable.toMarkdown(date, 'Details', true, links.map((l, i) => i === 1 ? [l[0], undefined] : l)));
+        await writeTextFile(outputDir, 'diff.md', diffTable.toMarkdown(date, 'Diff Summary', false, links.map((l, i) => i === 2 ? [l[0], undefined] : l)));
+        await writeTextFile(outputDir, 'diff-details.md', diffTable.toMarkdown(date, 'Diff Details', true, links.map((l, i) => i === 3 ? [l[0], undefined] : l)));
+    }
+    const previewFile = outputFiles.get(conf.outputPreviewType);
+    if (previewFile) {
+        showTextPreview(buildUri(outputDir, previewFile));
     }
 }
 
@@ -559,17 +574,21 @@ class Result extends Count {
     public filename: string;
     public language: string;
 
-    constructor(uri: vscode.Uri, language: string, value = { code: 0, comment: 0, blank: 0 }) {
-        super(value.code, value.comment, value.blank);
+    constructor(uri: vscode.Uri, language: string, count = { code: 0, comment: 0, blank: 0 }) {
+        super(count.code, count.comment, count.blank);
         this.uri = uri;
         this.filename = uri.fsPath;
         this.language = language;
+    }
+    clone() {
+        return new Result(this.uri, this.language, this);
     }
 }
 const resultsToJson = (results: Result[]) => {
     const obj: any = {};
     results.forEach(({ uri, language, code, comment, blank }) => obj[uri.toString()] = { language, code, comment, blank });
-    return JSON.stringify(obj, undefined, 2);
+    // return JSON.stringify(obj, undefined, 2);
+    return JSON.stringify(obj);
 }
 class Statistics extends Count {
     public name: string;
@@ -704,39 +723,29 @@ class ResultFormatter {
             ...resultFormat.footerLines,
         ].join(this.endOfLine);
     }
-    toMarkdown(date: Date) {
+    /*
+        toMarkdown(date: Date) {
+            return [
+                ...this.toMarkdownHeaderLines(date),
+                '',
+                ...this.toMarkdownSummaryLines(),
+                '',
+                ...this.toMarkdownDetailsLines(),
+            ].join(this.endOfLine);
+        }
+    */
+    toMarkdown(date: Date, title: string, detail: boolean, links: [string, string | undefined][]) {
+        const linksStr = links.map(l => l[1] ? `[${l[0]}](${l[1]})` : l[0]).join(' / ');
         return [
-            ...this.toMarkdownHeaderLines(date),
-            '',
-            ...this.toMarkdownSummaryLines(),
-            '',
-            ...this.toMarkdownDetailsLines(),
-        ].join(this.endOfLine);
-    }
-    toMarkdownDetails(date: Date, summaryFilePath: string) {
-        return [
-            '# Details',
-            '',
-            ...this.toMarkdownHeaderLines(date),
-            '',
-            `[summary](${summaryFilePath})`,
-            '',
-            ...this.toMarkdownDetailsLines(),
-            '',
-            `[summary](${summaryFilePath})`,
-        ].join(this.endOfLine);
-    }
-    toMarkdownSummary(date: Date, detailFilePath: string) {
-        return [
-            '# Summary',
+            `# ${title}`,
             '',
             ...this.toMarkdownHeaderLines(date),
             '',
-            `[details](${detailFilePath})`,
+            linksStr,
             '',
-            ...this.toMarkdownSummaryLines(),
+            ...(detail ? this.toMarkdownDetailsLines() : this.toMarkdownSummaryLines()),
             '',
-            `[details](${detailFilePath})`
+            linksStr,
         ].join(this.endOfLine);
     }
 

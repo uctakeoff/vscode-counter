@@ -129,6 +129,13 @@ export const showTextFile = async (uri: vscode.Uri) => {
     const doc = await vscode.workspace.openTextDocument(uri);
     return await vscode.window.showTextDocument(doc, vscode.ViewColumn.One, true);
 }
+export const showTextPreview = async (uri: vscode.Uri) => {
+    if (uri.path.endsWith('.md')) {
+       await  vscode.commands.executeCommand("markdown.showPreview", uri);
+    } else {
+        await showTextFile(uri);
+    }
+}
 export const writeTextFile = async (baseUri: vscode.Uri, path: string, text: string) => {
     const uri = buildUri(baseUri, path);
     // log(`writeTextFile : ${uri} ${text.length}B`);

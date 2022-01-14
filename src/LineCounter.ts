@@ -7,9 +7,8 @@ export class Count {
         public blank: number = 0
     ) {
     }
-    get total(): number {
-        return this.code + this.comment + this.blank;
-    }
+    get total() { return this.code + this.comment + this.blank; }
+    get isEmpty() { return (this.code === 0) && (this.comment === 0) && (this.blank === 0); }
     add(value: Count) {
         this.code += value.code;
         this.comment += value.comment;
