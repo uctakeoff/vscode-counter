@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as JSONC from 'jsonc-parser';
 import { TextDecoder, TextEncoder } from 'util';
 
-const log = (message: string, ...items: any[]) => console.log(`${new Date().toISOString()} ${message}`, ...items);
+const log = (message: string, ...items: any[]) => console.log(`${new Date().toISOString()}   ${message}`, ...items);
 
 export const currentWorkspaceFolder = async () => {
     const folders = vscode.workspace.workspaceFolders ?? [];
@@ -88,7 +88,7 @@ export const readTextFiles = async (uris: vscode.Uri[]) => {
             const data = await readTextFile(uri);
             ret.push({ uri, data });
         } catch (error: any) {
-            log(`readfile : ${uri} : error ${error}`);
+            log(`failed to read ${uri} : ${error}`);
             ret.push({ uri, error });
         }
     }
@@ -101,7 +101,7 @@ export const readJsonFile = async (baseUri: vscode.Uri, path?: string) => {
 }
 
 const makeDirectories_ = (dirpath: vscode.Uri, resolve: () => void, reject: (reason: string) => void) => {
-    log(`makeDirectories ${dirpath}`);
+    // log(`makeDirectories(${dirpath})`);
     vscode.workspace.fs.stat(dirpath).then((fileStat) => {
         if ((fileStat.type & vscode.FileType.Directory) != 0) {
             resolve();
@@ -109,12 +109,12 @@ const makeDirectories_ = (dirpath: vscode.Uri, resolve: () => void, reject: (rea
             reject(`${dirpath} is not directory.`);
         }
     }, (reason) => {
-        log(`vscode.workspace.fs.stat failed: ${reason}`);
+        // log(`vscode.workspace.fs.stat failed: ${reason}`);
         const curPath = dirpath.path;
         const parent = path.dirname(curPath);
         if (parent !== curPath) {
             makeDirectories_(dirpath.with({ path: parent }), () => {
-                log(`vscode.workspace.fs.createDirectory ${dirpath}`);
+                log(`createDirectory ${dirpath}`);
                 vscode.workspace.fs.createDirectory(dirpath).then(resolve, reject);
             }, reject);
         } else {

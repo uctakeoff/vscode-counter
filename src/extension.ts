@@ -243,7 +243,7 @@ class CodeCounterController {
                 histories.forEach(dir => vscode.workspace.fs.delete(dir, { recursive: true }));
             }
         } finally {
-            log(` finished. ${(new Date().getTime() - date.getTime())}ms`);
+            log(`finished. ${(new Date().getTime() - date.getTime())}ms`);
             statusBar.dispose();
         }
     }
@@ -316,7 +316,7 @@ const countLines = (lineCounterTable: LineCounterTable, fileUris: vscode.Uri[], 
         const onFinish = () => {
             ++fileCount;
             if (fileCount === totalFiles) {
-                log(`finished : total:${totalFiles} valid:${results.length}`);
+                log(`count finished : total:${totalFiles} valid:${results.length}`);
                 resolve(results);
             }
         };
@@ -530,15 +530,20 @@ const outputResults = async (date: Date, targetDirUri: vscode.Uri, results: Resu
 
     const diffs: Result[] = [];
     if (prevOutputDir) {
-        const prevResults: { [uri: string]: Count } = await readJsonFile(prevOutputDir, 'results.json');
-        log(`Previous OutputDir : ${prevOutputDir}, count ${prevResults.length} files`);
-        results.map(r => {
-            const p = prevResults[r.uri.toString()];
-            const diff = p ? r.clone().sub(p) : r;
-            if (!diff.isEmpty) {
-                diffs.push(diff);
-            }
-        });
+        try {
+            const prevResults: { [uri: string]: Count } = await readJsonFile(prevOutputDir, 'results.json');
+            log(`Previous OutputDir : ${prevOutputDir}, count ${prevResults.length} files`);
+            results.map(r => {
+                const p = prevResults[r.uri.toString()];
+                const diff = p ? r.clone().sub(p) : r;
+                if (!diff.isEmpty) {
+                    diffs.push(diff);
+                }
+            });
+        } catch (e: any) {
+            log(`failed to access previous "results.json"`);
+            diffs.length = 0;
+        }
     }
     const diffTable = new ResultFormatter(targetDirUri, diffs, conf.endOfLine, conf.printNumberWithCommas ? toStringWithCommas : undefined);
 
