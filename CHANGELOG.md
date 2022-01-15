@@ -7,6 +7,12 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 * workspace counter in status bar.
 
+## [3.0.0]
+
+### Changed
+
+- Reviewed file detection rules
+
 ## [2.4.0]
 
 ### Added

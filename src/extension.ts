@@ -255,7 +255,7 @@ class CodeCounterController {
             await this.countLinesOfFile(doc);
         } else {
             const c = await this.getCodeCounter();
-            const lineCounter = c.getById(doc.languageId) || c.getByUri(doc.uri);
+            const lineCounter = c.getCounter(doc.uri, doc.languageId);
             if (lineCounter) {
                 const result = editor.selections
                     .map(s => lineCounter.count(doc.getText(s)))
@@ -271,7 +271,7 @@ class CodeCounterController {
             this.showStatusBar();
         } else {
             const c = await this.getCodeCounter();
-            const lineCounter = c.getById(doc.languageId) || c.getByUri(doc.uri);
+            const lineCounter = c.getCounter(doc.uri, doc.languageId);
             if (lineCounter) {
                 const result = lineCounter?.count(doc.getText());
                 this.showStatusBar(`Code:${result.code} Comment:${result.comment} Blank:${result.blank}`);
@@ -322,7 +322,7 @@ const countLines = (lineCounterTable: LineCounterTable, fileUris: vscode.Uri[], 
         };
         for (let i = 0; i < totalFiles; ++i) {
             const fileUri = fileUris[i];
-            const lineCounter = lineCounterTable.getByUri(fileUri);
+            const lineCounter = lineCounterTable.getCounter(fileUri);
             if (lineCounter) {
 
                 while ((i - fileCount) >= maxOpenFiles) {
@@ -496,20 +496,24 @@ class LineCounterTable {
     }
     public entries = () => this.langExtensions;
 
-    public getById(langId: string) {
-        return this.langIdTable.get(langId) || this.aliasTable.get(langId);
+    public getCounter(uri: vscode.Uri, langId?: string) {
+        const filePath = uri.fsPath;
+        // priority
+        return this.getByAssociations(filePath) 
+            || this.filenameRules.get(path.basename(filePath))
+            || this.getById(langId) 
+            || this.fileextRules.get(filePath) 
+            || this.fileextRules.get(path.extname(filePath)) 
+            ;
     }
-    public getByPath(filePath: string) {
-        const lineCounter = this.fileextRules.get(filePath) || this.fileextRules.get(path.extname(filePath)) || this.filenameRules.get(path.basename(filePath));
-        if (lineCounter !== undefined) {
-            return lineCounter;
-        }
+
+    private getById(langId?: string) {
+        return !langId ? undefined : (this.langIdTable.get(langId) || this.aliasTable.get(langId));
+    }
+    private getByAssociations(filePath: string) {
         const patType = this.associations.find(([pattern,]) => minimatch(filePath, pattern, { matchBase: true }));
-        //log(`## ${filePath}: ${patType}`);
+        // log(`## ${filePath}: ${patType}`);
         return (patType !== undefined) ? this.getById(patType[1]) : undefined;
-    }
-    public getByUri(uri: vscode.Uri) {
-        return this.getByPath(uri.fsPath);
     }
 }
 
@@ -631,7 +635,7 @@ class MarkdownTableFormatter {
                 return d;
             }
             const relativePath = vscode.workspace.asRelativePath(d);
-            return `[${relativePath}](/${relativePath})`;
+            return `[${relativePath}](/${encodeURI(relativePath)})`;
         }).join(' | ') + ' |';
     }
 }
