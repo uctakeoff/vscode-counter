@@ -1,20 +1,42 @@
 'use strict';
 
-export default class LineCounter
-{
+export class Count {    
+    constructor(
+        public code: number = 0,
+        public comment: number = 0,
+        public blank: number = 0
+    ) {
+    }
+    get total() { return this.code + this.comment + this.blank; }
+    get isEmpty() { return (this.code === 0) && (this.comment === 0) && (this.blank === 0); }
+    add(value: Count) {
+        this.code += value.code;
+        this.comment += value.comment;
+        this.blank += value.blank;
+        return this;
+    }
+    sub(value: Count) {
+        this.code -= value.code;
+        this.comment -= value.comment;
+        this.blank -= value.blank;
+        return this;
+    }
+};
+
+export class LineCounter {
     public readonly name: string;
     private lineComments: string[];
     private blockComments: [string, string][];
     private blockStrings: [string, string][];
 
-    constructor(name:string, lineComments:string[], blockComments:[string,string][], blockStrings:[string,string][]) {
+    constructor(name: string, lineComments: string[], blockComments: [string, string][], blockStrings: [string, string][]) {
         this.name = name;
         this.lineComments = lineComments;
         this.blockComments = blockComments;
         this.blockStrings = blockStrings;
     }
-    public count(text: string): {code:number, comment:number, blank:number} {
-        enum LineType {Code, Comment, Blank}
+    public count(text: string): Count {
+        enum LineType { Code, Comment, Blank }
 
         const nextIndexOf = (str: string, searchValue: string, fromIndex = 0) => {
             const index = str.indexOf(searchValue, fromIndex);
@@ -36,7 +58,7 @@ export default class LineCounter
                     } else {
                         break;
                     }
-                // now in block string (here document)
+                    // now in block string (here document)
                 } else if (blockStringEnd.length > 0) {
                     const index = nextIndexOf(line, blockStringEnd, i);
                     if (index >= 0) {
@@ -78,6 +100,6 @@ export default class LineCounter
             result[type]++;
             // console.log(`${lineIndex+1} [${LineType[type]}]   ${line}`);
         });
-        return { code: result[LineType.Code], comment: result[LineType.Comment], blank: result[LineType.Blank], };
+        return new Count(result[LineType.Code], result[LineType.Comment], result[LineType.Blank],);
     }
 }

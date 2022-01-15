@@ -7,6 +7,20 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 * workspace counter in status bar.
 
+## [2.4.0]
+
+### Added
+
+- Counter diff output function
+
+### Changed
+
+- Moved the status bar to the right
+
+### Removed
+
+- Disuse Configuration : `VSCodeCounter.outputMarkdownSeparately`.
+
 ## [2.3.0]
 
 ### Fixed

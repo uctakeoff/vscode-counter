@@ -87,7 +87,7 @@ However, you must carry the stored information to the remote environment by your
 * `VSCodeCounter.outputAsText`: Whether to output the result as a text file.
 * `VSCodeCounter.outputAsCSV`: Whether to output the result as a CSV file.
 * `VSCodeCounter.outputAsMarkdown`: Whether to output the result as a Markdown file.
-* `VSCodeCounter.outputPreviewType`: Type of output file to preview after counting. Choose from `text`, `csv`, `markdown` or `none`.
+* `VSCodeCounter.outputPreviewType`: Type of output file to preview after counting. Choose from `text`, `csv`, `markdown`, `diff-text`, `diff-csv`, `diff-markdown` or `none`.
 * `VSCodeCounter.saveLocation`: Specify where to store the collected language configurations.
 * `VSCodeCounter.history`: Controls the number of recent result to keep in history.
 

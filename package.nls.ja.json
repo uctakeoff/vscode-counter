@@ -18,7 +18,6 @@
   "configuration.outputAsText.description": "結果をテキストファイルで出力する.",
   "configuration.outputAsCSV.description": "結果をCSVファイルで出力する.",
   "configuration.outputAsMarkdown.description": "結果をMarkdown形式で出力する.",
-  "configuration.outputMarkdownSeparately.description": "Markdown結果を概要と詳細で分けて出力する.",
   "configuration.outputPreviewType.description": "カウント後にプレビューする出力ファイルの種類.",
   "configuration.saveLocation.description": "集めた言語設定を保存する場所を指定する.",
   "configuration.languages.description": "保存された言語設定.",
