@@ -26,7 +26,7 @@ const toStringWithCommas = (obj: any) => {
 const sleep = (msec: number) => new Promise(resolve => setTimeout(resolve, msec));
 const log = (message: string, ...items: any[]) => console.log(`${new Date().toISOString()} ${message}`, ...items);
 const showError = (message: string, ...items: any[]) => vscode.window.showErrorMessage(`[${EXTENSION_NAME}] ${message}`, ...items);
-const registerCommand = (command: string, callback: (...args: any[]) => any, thisArg?: any): vscode.Disposable => {
+const registerCommand = (command: string, callback: (...args: any[]) => Promise<any>, thisArg?: any): vscode.Disposable => {
     return vscode.commands.registerCommand(`extension.vscode-counter.${command}`, async (...args) => {
         try {
             await callback(...args);
@@ -46,7 +46,7 @@ export const activate = (context: vscode.ExtensionContext) => {
         codeCountController,
         registerCommand('countInWorkspace', () => codeCountController.countLinesInWorkSpace()),
         registerCommand('countInDirectory', (targetDir: vscode.Uri | undefined) => codeCountController.countLinesInDirectory(targetDir)),
-        registerCommand('countInFile', () => codeCountController.toggleVisible()),
+        registerCommand('countInFile', async () => codeCountController.toggleVisible()),
         registerCommand('saveLanguageConfigurations', () => codeCountController.saveLanguageConfigurations()),
         registerCommand('outputAvailableLanguages', () => codeCountController.outputAvailableLanguages())
     );
@@ -186,7 +186,7 @@ class CodeCounterController {
     public async countLinesInDirectory(targetDir: vscode.Uri | undefined) {
         const folder = await currentWorkspaceFolder();
         if (targetDir) {
-            this.countLinesInDirectory_(targetDir, folder.uri);
+            await this.countLinesInDirectory_(targetDir, folder.uri);
         } else {
             const option = {
                 value: folder.uri.toString(true),
@@ -195,13 +195,13 @@ class CodeCounterController {
             };
             const uri = await vscode.window.showInputBox(option);
             if (uri) {
-                this.countLinesInDirectory_(vscode.Uri.parse(uri), folder.uri);
+                await this.countLinesInDirectory_(vscode.Uri.parse(uri), folder.uri);
             }
         }
     }
     public async countLinesInWorkSpace() {
         const folder = await currentWorkspaceFolder();
-        this.countLinesInDirectory_(folder.uri, folder.uri);
+        await this.countLinesInDirectory_(folder.uri, folder.uri);
     }
     private async countLinesInDirectory_(targetUri: vscode.Uri, workspaceDir: vscode.Uri) {
         const date = new Date();
@@ -227,7 +227,8 @@ class CodeCounterController {
                 throw Error(`There was no target file.`);
             }
             statusBar.text = `VSCodeCounter: Totaling...`;
-
+            
+            await makeDirectories(outputDir);
             const regex = /^\d\d\d\d-\d\d-\d\d\_\d\d-\d\d-\d\d$/;
             const histories = (await vscode.workspace.fs.readDirectory(outputDir))
                 .filter(d => ((d[1] & vscode.FileType.Directory) != 0) && regex.test(d[0]))
