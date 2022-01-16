@@ -6,7 +6,7 @@ import * as path from 'path';
 import { LineCounter, Count } from './LineCounter';
 import Gitignore from './Gitignore';
 import * as minimatch from 'minimatch';
-import { buildUri, createTextDecoder, currentWorkspaceFolder, dirUri, makeDirectories, readJsonFile, readTextFiles, showTextPreview, writeTextFile } from './vscode-utils';
+import { buildUri, createTextDecoder, currentWorkspaceFolder, dirUri, makeDirectories, readJsonFile, readUtf8Files, showTextPreview, writeTextFile } from './vscode-utils';
 
 const EXTENSION_ID = 'uctakeoff.vscode-counter';
 const EXTENSION_NAME = 'VSCodeCounter';
@@ -227,7 +227,7 @@ class CodeCounterController {
                 throw Error(`There was no target file.`);
             }
             statusBar.text = `VSCodeCounter: Totaling...`;
-            
+
             await makeDirectories(outputDir);
             const regex = /^\d\d\d\d-\d\d-\d\d\_\d\d-\d\d-\d\d$/;
             const histories = (await vscode.workspace.fs.readDirectory(outputDir))
@@ -300,8 +300,8 @@ class CodeCounterController {
 const loadGitIgnore = async () => {
     const gitignoreFiles = await vscode.workspace.findFiles('**/.gitignore', '');
     gitignoreFiles.forEach(f => log(`use gitignore : ${f}`));
-    const values = await readTextFiles(gitignoreFiles.sort());
-    return new Gitignore('').merge(...values.map(p => new Gitignore(p.data ?? '', dirUri(p.uri).fsPath)));
+    const values = await readUtf8Files(gitignoreFiles.sort());
+    return new Gitignore('').merge(...values.map(p => new Gitignore(p.data, dirUri(p.uri).fsPath)));
 }
 
 const countLines = (lineCounterTable: LineCounterTable, fileUris: vscode.Uri[], maxOpenFiles: number, fileEncoding: string, ignoreUnsupportedFile: boolean, showStatus: (text: string) => void) => {
@@ -412,7 +412,7 @@ const collectLanguageConfigurations = (langs: Map<string, LanguageConf>): Promis
                         const langExt = append(langs, l);
                         if (l.configuration) {
                             const confUrl = vscode.Uri.file(path.join(ex.extensionPath, l.configuration));
-                            readJsonFile(confUrl).then((langConf: vscode.LanguageConfiguration) => {
+                            readJsonFile<vscode.LanguageConfiguration>(confUrl, undefined, {}).then((langConf) => {
                                 // log(`${confUrl} ${data.length}B :${l.id}`);
                                 if (langConf.comments) {
                                     if (langConf.comments.lineComment) {
@@ -470,7 +470,7 @@ const loadLanguageConfigurations = async (conf: Config): Promise<{ [key: string]
             case "output directory":
                 const workFolder = await currentWorkspaceFolder();
                 const outputDir = buildUri(workFolder.uri, conf.outputDirectory);
-                return await readJsonFile(outputDir, 'languages.json');
+                return await readJsonFile<{ [key: string]: LanguageConf }>(outputDir, 'languages.json', {});
             default: break;
         }
     } catch (e: any) {
@@ -500,11 +500,11 @@ class LineCounterTable {
     public getCounter(uri: vscode.Uri, langId?: string) {
         const filePath = uri.fsPath;
         // priority
-        return this.getByAssociations(filePath) 
+        return this.getByAssociations(filePath)
             || this.filenameRules.get(path.basename(filePath))
-            || this.getById(langId) 
-            || this.fileextRules.get(filePath) 
-            || this.fileextRules.get(path.extname(filePath)) 
+            || this.getById(langId)
+            || this.fileextRules.get(filePath)
+            || this.fileextRules.get(path.extname(filePath))
             ;
     }
 
@@ -536,11 +536,19 @@ const outputResults = async (date: Date, targetDirUri: vscode.Uri, results: Resu
     const diffs: Result[] = [];
     if (prevOutputDir) {
         try {
-            const prevResults: { [uri: string]: Count } = await readJsonFile(prevOutputDir, 'results.json');
-            log(`Previous OutputDir : ${prevOutputDir}, count ${prevResults.length} files`);
-            results.map(r => {
+            const prevResults = await readJsonFile<{ [uri: string]: Count&{language:string} }>(prevOutputDir, 'results.json', {});
+            log(`Previous OutputDir : ${prevOutputDir}, count ${Object.keys(prevResults).length} files`);
+            results.forEach(r => {
                 const p = prevResults[r.uri.toString()];
+                delete prevResults[r.uri.toString()];
                 const diff = p ? r.clone().sub(p) : r;
+                if (!diff.isEmpty) {
+                    diffs.push(diff);
+                }
+            });
+            log(` removed ${Object.keys(prevResults).length} files`);
+            Object.entries(prevResults).forEach(v => {
+                const diff = new Result(vscode.Uri.parse(v[0]), v[1].language, new Count().sub(v[1]));
                 if (!diff.isEmpty) {
                     diffs.push(diff);
                 }
