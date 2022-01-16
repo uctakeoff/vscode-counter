@@ -74,30 +74,47 @@ const vscodeEncodingTable = new Map<string, string>([
 
 export const createTextDecoder = (vscodeTextEncoding: string) => new TextDecoder(vscodeEncodingTable.get(vscodeTextEncoding) || vscodeTextEncoding);
 
-export const readTextFile = async (baseUri: vscode.Uri, path?: string) => {
+export const readUtf8File = async (baseUri: vscode.Uri, path?: string): Promise<{ uri: vscode.Uri, data: string, error?: any }> => {
     const uri = path ? buildUri(baseUri, path) : baseUri;
-    const data = await vscode.workspace.fs.readFile(uri);
-    log(`read ${uri} : ${data.length}B`);
-    return decoderU8.decode(data);
+    try {
+        const bin = await vscode.workspace.fs.readFile(uri);
+        // log(`read ${uri} : ${bin.length}B`);
+        const data = decoderU8.decode(bin);
+        return {uri, data};
+    } catch (error: any) {
+        log(`readUtf8File(${baseUri}, ${path}) failed. : ${error}`);
+        return { uri, data: '', error };
+    }
 }
 
-export const readTextFiles = async (uris: vscode.Uri[]) => {
-    const ret: { uri: vscode.Uri, data?: string, error?: any }[] = [];
+export const readUtf8Files = async (uris: vscode.Uri[]) => {
+    const ret: { uri: vscode.Uri, data: string, error?: any }[] = [];
     for (const uri of uris) {
-        try {
-            const data = await readTextFile(uri);
-            ret.push({ uri, data });
-        } catch (error: any) {
-            log(`failed to read ${uri} : ${error}`);
-            ret.push({ uri, error });
-        }
+        ret.push(await readUtf8File(uri));
     }
     return ret;
 }
 
-export const readJsonFile = async (baseUri: vscode.Uri, path?: string) => {
-    const data = await readTextFile(baseUri, path);
-    return JSONC.parse(data);
+export const checkJsonType = <T extends boolean | number | string | Array<any> | { [key: string]: any }>(json: any, defaultValue: T): T => {
+    if (json === null || json === undefined) return defaultValue;
+    if (Array.isArray(json)) return json as T;
+    const type = typeof json;
+    if ((type === typeof defaultValue) && ['object', 'number', 'boolean', 'string'].some(t => t === type)) {
+        return json as T;
+    }
+    return defaultValue;
+}
+
+export const readJsonFile = async <T extends boolean | number | string | Array<any> | { [key: string]: any }>(baseUri: vscode.Uri, path: string | undefined, defaultValue: T): Promise<T> => {
+    try {
+        const text = await readUtf8File(baseUri, path);
+        if (text.error) return defaultValue;
+        const json = JSONC.parse(text.data);
+        return checkJsonType(json, defaultValue);
+    } catch (e: any) {
+        log(`readJsonFile(${baseUri}, ${path}) failed. : ${e}`);
+    }
+    return defaultValue;
 }
 
 const makeDirectories_ = (dirpath: vscode.Uri, resolve: () => void, reject: (reason: string) => void) => {
@@ -131,7 +148,7 @@ export const showTextFile = async (uri: vscode.Uri) => {
 }
 export const showTextPreview = async (uri: vscode.Uri) => {
     if (uri.path.endsWith('.md')) {
-       await  vscode.commands.executeCommand("markdown.showPreview", uri);
+        await vscode.commands.executeCommand("markdown.showPreview", uri);
     } else {
         await showTextFile(uri);
     }

@@ -24,16 +24,11 @@ export class Count {
 };
 
 export class LineCounter {
-    public readonly name: string;
-    private lineComments: string[];
-    private blockComments: [string, string][];
-    private blockStrings: [string, string][];
-
-    constructor(name: string, lineComments: string[], blockComments: [string, string][], blockStrings: [string, string][]) {
-        this.name = name;
-        this.lineComments = lineComments;
-        this.blockComments = blockComments;
-        this.blockStrings = blockStrings;
+    constructor(
+        public readonly name: string, 
+        private lineComments: string[], 
+        private blockComments: [string, string][], 
+        private blockStrings: [string, string][]) {
     }
     public count(text: string): Count {
         enum LineType { Code, Comment, Blank }
@@ -49,8 +44,8 @@ export class LineCounter {
             let type = (blockCommentEnd.length > 0) ? LineType.Comment : (blockStringEnd.length > 0) ? LineType.Code : LineType.Blank;
             let i = 0;
             while (i < line.length) {
-                // now in block comment
                 if (blockCommentEnd.length > 0) {
+                    // now in block comment
                     const index = nextIndexOf(line, blockCommentEnd, i);
                     if (index >= 0) {
                         blockCommentEnd = '';
@@ -58,8 +53,8 @@ export class LineCounter {
                     } else {
                         break;
                     }
-                    // now in block string (here document)
                 } else if (blockStringEnd.length > 0) {
+                    // now in block string (here document)
                     const index = nextIndexOf(line, blockStringEnd, i);
                     if (index >= 0) {
                         blockStringEnd = '';
