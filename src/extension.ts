@@ -3,9 +3,9 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { LineCounter, Count } from './LineCounter';
+import { Count } from './LineCounter';
+import { LanguageConf, LineCounterTable } from './LineCounterTable';
 import Gitignore from './Gitignore';
-import * as minimatch from 'minimatch';
 import { buildUri, createTextDecoder, currentWorkspaceFolder, dirUri, makeDirectories, readJsonFile, readUtf8Files, showTextPreview, writeTextFile } from './vscode-utils';
 
 const EXTENSION_ID = 'uctakeoff.vscode-counter';
@@ -256,7 +256,7 @@ class CodeCounterController {
             await this.countLinesOfFile(doc);
         } else {
             const c = await this.getCodeCounter();
-            const lineCounter = c.getCounter(doc.uri, doc.languageId);
+            const lineCounter = c.getCounter(doc.uri.fsPath, doc.languageId);
             if (lineCounter) {
                 const result = editor.selections
                     .map(s => lineCounter.count(doc.getText(s)))
@@ -272,7 +272,7 @@ class CodeCounterController {
             this.showStatusBar();
         } else {
             const c = await this.getCodeCounter();
-            const lineCounter = c.getCounter(doc.uri, doc.languageId);
+            const lineCounter = c.getCounter(doc.uri.fsPath, doc.languageId);
             if (lineCounter) {
                 const result = lineCounter?.count(doc.getText());
                 this.showStatusBar(`Code:${result.code} Comment:${result.comment} Blank:${result.blank}`);
@@ -323,7 +323,7 @@ const countLines = (lineCounterTable: LineCounterTable, fileUris: vscode.Uri[], 
         };
         for (let i = 0; i < totalFiles; ++i) {
             const fileUri = fileUris[i];
-            const lineCounter = lineCounterTable.getCounter(fileUri);
+            const lineCounter = lineCounterTable.getCounter(fileUri.fsPath);
             if (lineCounter) {
 
                 while ((i - fileCount) >= maxOpenFiles) {
@@ -363,14 +363,7 @@ type VscodeLanguage = {
     extensions?: string[]
     configuration?: string
 };
-type LanguageConf = {
-    aliases: string[]
-    filenames: string[]
-    extensions: string[]
-    lineComments: string[]
-    blockComments: [string, string][]
-    blockStrings: [string, string][]
-}
+
 const pushUnique = <T>(array: T[], value: T) => {
     if (array.indexOf(value) < 0) {
         array.push(value);
@@ -388,9 +381,6 @@ const append = (langs: Map<string, LanguageConf>, l: VscodeLanguage) => {
             blockStrings: []
         }
     });
-    // l.aliases?.filter(v => langExt.aliases.indexOf(v) < 0).forEach(v => langExt.aliases.push(v));
-    // l.filenames?.filter(v => langExt.filenames.indexOf(v) < 0).forEach(v => langExt.filenames.push(v));
-    // l.extensions?.filter(v => langExt.extensions.indexOf(v) < 0).forEach(v => langExt.extensions.push(v));
     l.aliases?.forEach(v => pushUnique(langExt.aliases, v));
     l.filenames?.forEach(v => pushUnique(langExt.filenames, v));
     l.extensions?.forEach(v => pushUnique(langExt.extensions, v));
@@ -479,46 +469,7 @@ const loadLanguageConfigurations = async (conf: Config): Promise<{ [key: string]
     return {};
 }
 
-class LineCounterTable {
-    private langIdTable: Map<string, LineCounter> = new Map();
-    private aliasTable: Map<string, LineCounter> = new Map();
-    private fileextRules: Map<string, LineCounter> = new Map();
-    private filenameRules: Map<string, LineCounter> = new Map();
-
-    constructor(private langExtensions: Map<string, LanguageConf>, private associations: [string, string][]) {
-        log(`associations : ${this.associations.length}\n[${this.associations.join("],[")}]`);
-        langExtensions.forEach((lang, id) => {
-            const langName = lang.aliases.length > 0 ? lang.aliases[0] : id;
-            const lineCounter = new LineCounter(langName, lang.lineComments, lang.blockComments, lang.blockStrings);
-            lang.aliases.forEach(v => this.aliasTable.set(v, lineCounter));
-            lang.extensions.forEach(v => this.fileextRules.set(v.startsWith('.') ? v : `.${v}`, lineCounter));
-            lang.filenames.forEach(v => this.filenameRules.set(v, lineCounter));
-        });
-    }
-    public entries = () => this.langExtensions;
-
-    public getCounter(uri: vscode.Uri, langId?: string) {
-        const filePath = uri.fsPath;
-        // priority
-        return this.getByAssociations(filePath)
-            || this.filenameRules.get(path.basename(filePath))
-            || this.getById(langId)
-            || this.fileextRules.get(filePath)
-            || this.fileextRules.get(path.extname(filePath))
-            ;
-    }
-
-    private getById(langId?: string) {
-        return !langId ? undefined : (this.langIdTable.get(langId) || this.aliasTable.get(langId));
-    }
-    private getByAssociations(filePath: string) {
-        const patType = this.associations.find(([pattern,]) => minimatch(filePath, pattern, { matchBase: true }));
-        // log(`## ${filePath}: ${patType}`);
-        return (patType !== undefined) ? this.getById(patType[1]) : undefined;
-    }
-}
-
-const outputFiles = new Map<string, string>([
+const previewFiles = new Map<string, string>([
     ['text', 'results.txt'],
     ['diff-text', 'diff.txt'],
     ['csv', 'results.csv'],
@@ -536,7 +487,7 @@ const outputResults = async (date: Date, targetDirUri: vscode.Uri, results: Resu
     const diffs: Result[] = [];
     if (prevOutputDir) {
         try {
-            const prevResults = await readJsonFile<{ [uri: string]: Count&{language:string} }>(prevOutputDir, 'results.json', {});
+            const prevResults = await readJsonFile<{ [uri: string]: Count & { language: string } }>(prevOutputDir, 'results.json', {});
             log(`Previous OutputDir : ${prevOutputDir}, count ${Object.keys(prevResults).length} files`);
             results.forEach(r => {
                 const p = prevResults[r.uri.toString()];
@@ -569,19 +520,17 @@ const outputResults = async (date: Date, targetDirUri: vscode.Uri, results: Resu
         await writeTextFile(outputDir, 'diff.csv', diffTable.toCSVLines());
     }
     if (conf.outputAsMarkdown) {
-        const links: [string, string | undefined][] = [
-            ['summary', 'results.md'],
-            ['details', 'details.md'],
-            ['diff summary', 'diff.md'],
-            ['diff details', 'diff-details.md'],
-            // ['Previous', prevOutputDir ? '/' + vscode.workspace.asRelativePath(buildUri(prevOutputDir, 'results.md')) : undefined],
+        const mds = [
+            { title: 'Summary', path: 'results.md', table: resultTable, detail: false },
+            { title: 'Details', path: 'details.md', table: resultTable, detail: true },
+            { title: 'Diff Summary', path: 'diff.md', table: diffTable, detail: false },
+            { title: 'Diff Details', path: 'diff-details.md', table: diffTable, detail: true },
         ];
-        await writeTextFile(outputDir, 'results.md', resultTable.toMarkdown(date, 'Summary', false, links.map((l, i) => i === 0 ? [l[0], undefined] : l)));
-        await writeTextFile(outputDir, 'details.md', resultTable.toMarkdown(date, 'Details', true, links.map((l, i) => i === 1 ? [l[0], undefined] : l)));
-        await writeTextFile(outputDir, 'diff.md', diffTable.toMarkdown(date, 'Diff Summary', false, links.map((l, i) => i === 2 ? [l[0], undefined] : l)));
-        await writeTextFile(outputDir, 'diff-details.md', diffTable.toMarkdown(date, 'Diff Details', true, links.map((l, i) => i === 3 ? [l[0], undefined] : l)));
+        await Promise.all(mds.map(({ title, path, table, detail }, index) => {
+            return writeTextFile(outputDir, path, table.toMarkdown(date, title, detail, mds.map((f, i) => [f.title, i === index ? undefined : f.path])));
+        }));
     }
-    const previewFile = outputFiles.get(conf.outputPreviewType);
+    const previewFile = previewFiles.get(conf.outputPreviewType);
     if (previewFile) {
         showTextPreview(buildUri(outputDir, previewFile));
     }
@@ -718,7 +667,6 @@ class ResultFormatter {
         return [
             `Date : ${toLocalDateString(date)}`,
             `Directory : ${this.targetDirUri.fsPath}`,
-            // `Total : code: ${this.total.code}, comment : ${this.total.comment}, blank : ${this.total.blank}, all ${this.total.total} lines`,
             `Total : ${this.total.files} files,  ${this.total.code} codes, ${this.total.comment} comments, ${this.total.blank} blanks, all ${this.total.total} lines`,
             '',
             'Languages',
