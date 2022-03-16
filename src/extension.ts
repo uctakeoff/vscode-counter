@@ -364,12 +364,6 @@ type VscodeLanguage = {
     configuration?: string
 };
 
-const pushUnique = <T>(array: T[], value: T) => {
-    if (array.indexOf(value) < 0) {
-        array.push(value);
-    }
-}
-
 const append = (langs: Map<string, LanguageConf>, l: VscodeLanguage) => {
     const langExt = getOrSet(langs, l.id, (): LanguageConf => {
         return {
@@ -381,9 +375,9 @@ const append = (langs: Map<string, LanguageConf>, l: VscodeLanguage) => {
             blockStrings: []
         }
     });
-    l.aliases?.forEach(v => pushUnique(langExt.aliases, v));
-    l.filenames?.forEach(v => pushUnique(langExt.filenames, v));
-    l.extensions?.forEach(v => pushUnique(langExt.extensions, v));
+    l.aliases?.forEach(v => langExt.aliases.push(v));
+    l.filenames?.forEach(v => langExt.filenames.push(v));
+    l.extensions?.forEach(v => langExt.extensions.push(v));
     return langExt;
 }
 
@@ -397,7 +391,7 @@ const collectLanguageConfigurations = (langs: Map<string, LanguageConf>): Promis
             vscode.extensions.all.forEach(ex => {
                 const languages = ex.packageJSON.contributes?.languages as VscodeLanguage[] ?? undefined;
                 if (languages) {
-                    totalCount += languages.length
+                    totalCount += languages.length;
                     languages.forEach(l => {
                         const langExt = append(langs, l);
                         if (l.configuration) {
@@ -406,10 +400,10 @@ const collectLanguageConfigurations = (langs: Map<string, LanguageConf>): Promis
                                 // log(`${confUrl} ${data.length}B :${l.id}`);
                                 if (langConf.comments) {
                                     if (langConf.comments.lineComment) {
-                                        pushUnique(langExt.lineComments, langConf.comments.lineComment);
+                                        langExt.lineComments.push(langConf.comments.lineComment);
                                     }
                                     if (langConf.comments.blockComment && langConf.comments.blockComment.length >= 2) {
-                                        pushUnique(langExt.blockComments, langConf.comments.blockComment);
+                                        langExt.blockComments.push(langConf.comments.blockComment);
                                     }
                                 }
                                 if (++finishedCount >= totalCount) {
