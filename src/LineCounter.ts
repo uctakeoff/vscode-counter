@@ -1,6 +1,6 @@
 'use strict';
 
-export class Count {    
+export class Count {
     constructor(
         public code: number = 0,
         public comment: number = 0,
@@ -23,20 +23,37 @@ export class Count {
     }
 };
 
+const nextIndexOf = (str: string, searchValue: string, fromIndex = 0) => {
+    const index = str.indexOf(searchValue, fromIndex);
+    return (index >= 0) ? index + searchValue.length : index;
+}
+const findFirstOf = (str: string, searchStrings: string[], position?: number): [number, number] => {
+    let strIndex = Number.MAX_VALUE;
+    let arrIndex = -1;
+    searchStrings.forEach((s, ai) => {
+        const si = str.indexOf(s, position);
+        if (si >= 0 && strIndex > si) {
+            strIndex = si;
+            arrIndex = ai;
+        }
+    });
+    return [strIndex, arrIndex];
+}
+
+const LineType = { Code: 0, Comment: 1, Blank: 2 } as const;
+
 export class LineCounter {
+    private blockCommentBegins: string[];
+    private blockStringBegins: string[];
     constructor(
-        public readonly name: string, 
-        private lineComments: string[], 
-        private blockComments: [string, string][], 
+        public readonly name: string,
+        private lineComments: string[],
+        private blockComments: [string, string][],
         private blockStrings: [string, string][]) {
+            this.blockCommentBegins = this.blockComments.map(b => b[0]);
+            this.blockStringBegins = this.blockStrings.map(b => b[0]);
     }
     public count(text: string): Count {
-        enum LineType { Code, Comment, Blank }
-
-        const nextIndexOf = (str: string, searchValue: string, fromIndex = 0) => {
-            const index = str.indexOf(searchValue, fromIndex);
-            return (index >= 0) ? index + searchValue.length : index;
-        };
         let result = [0, 0, 0];
         let blockCommentEnd = '';
         let blockStringEnd = '';
@@ -63,16 +80,16 @@ export class LineCounter {
                         break;
                     }
                 } else {
-                    // now is line comment.
                     if (this.lineComments.some(lc => line.startsWith(lc))) {
+                        // now is line comment.
                         type = LineType.Comment;
                         break;
                     }
                     {
-                        let index = -1;
-                        const range = this.blockComments.find(bc => { index = line.indexOf(bc[0], i); return index >= 0; });
-                        if (range !== undefined) {
+                        const [index, bi] = findFirstOf(line, this.blockCommentBegins, i);
+                        if (bi >= 0) {
                             // start block comment
+                            const range = this.blockComments[bi];
                             type = index === 0 ? LineType.Comment : LineType.Code;
                             blockCommentEnd = range[1];
                             i = index + range[0].length;
@@ -81,9 +98,10 @@ export class LineCounter {
                     }
                     type = LineType.Code;
                     {
-                        let index = -1;
-                        const range = this.blockStrings.find(bc => { index = line.indexOf(bc[0], i); return index >= 0; });
-                        if (range !== undefined) {
+                        const [index, bi] = findFirstOf(line, this.blockStringBegins, i);
+                        if (bi >= 0) {
+                            // start block string
+                            const range = this.blockStrings[bi];
                             blockStringEnd = range[1];
                             i = index + range[0].length;
                             continue;
