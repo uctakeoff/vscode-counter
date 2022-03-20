@@ -7,6 +7,7 @@ import { Count } from './LineCounter';
 import { LanguageConf, LineCounterTable } from './LineCounterTable';
 import Gitignore from './Gitignore';
 import { buildUri, createTextDecoder, currentWorkspaceFolder, dirUri, makeDirectories, readJsonFile, readUtf8Files, showTextPreview, writeTextFile } from './vscode-utils';
+import { internalDefinitions } from './internalDefinitions';
 
 const EXTENSION_ID = 'uctakeoff.vscode-counter';
 const EXTENSION_NAME = 'VSCodeCounter';
@@ -79,7 +80,7 @@ const loadConfig = () => {
         maxOpenFiles: conf.get('maxOpenFiles', 500),
         ignoreUnsupportedFile: conf.get('ignoreUnsupportedFile', true),
         history: Math.max(1, conf.get('history', 5)),
-        languages: conf.get<{ [key: string]: LanguageConf }>('languages', {}),
+        languages: conf.get<{ [key: string]: Partial<LanguageConf> }>('languages', {}),
 
         endOfLine: conf.get('endOfLine', '\n'),
         printNumberWithCommas: conf.get('printNumberWithCommas', true),
@@ -163,7 +164,10 @@ class CodeCounterController {
         if (this.codeCounter_) {
             return this.codeCounter_
         }
-        const langs = objectToMap(await loadLanguageConfigurations(this.conf));
+        const langs = new Map<string, LanguageConf>();
+        Object.entries(internalDefinitions).forEach(v => append(langs, v[0], v[1]));
+        Object.entries(await loadLanguageConfigurations(this.conf)).forEach(v => append(langs, v[0], v[1]));
+        
         log(`load Language Settings = ${langs.size}`);
         await collectLanguageConfigurations(langs);
         log(`collect Language Settings = ${langs.size}`);
@@ -364,8 +368,8 @@ type VscodeLanguage = {
     configuration?: string
 };
 
-const append = (langs: Map<string, LanguageConf>, l: VscodeLanguage) => {
-    const langExt = getOrSet(langs, l.id, (): LanguageConf => {
+const append = (langs: Map<string, LanguageConf>, id: string, value: Partial<LanguageConf>) => {
+    const langExt = getOrSet(langs, id, (): LanguageConf => {
         return {
             aliases: [],
             filenames: [],
@@ -375,10 +379,13 @@ const append = (langs: Map<string, LanguageConf>, l: VscodeLanguage) => {
             blockStrings: []
         }
     });
-    l.aliases?.forEach(v => langExt.aliases.push(v));
-    l.filenames?.forEach(v => langExt.filenames.push(v));
-    l.extensions?.forEach(v => langExt.extensions.push(v));
-    return langExt;
+    value.aliases?.forEach(v => langExt.aliases.push(v));
+    value.filenames?.forEach(v => langExt.filenames.push(v));
+    value.extensions?.forEach(v => langExt.extensions.push(v));
+    value.lineComments?.forEach(v => langExt.lineComments.push(v));
+    value.blockComments?.forEach(v => langExt.blockComments.push(v));
+    value.blockStrings?.forEach(v => langExt.blockStrings.push(v));
+    return langExt;           
 }
 
 const collectLanguageConfigurations = (langs: Map<string, LanguageConf>): Promise<Map<string, LanguageConf>> => {
@@ -393,11 +400,11 @@ const collectLanguageConfigurations = (langs: Map<string, LanguageConf>): Promis
                 if (languages) {
                     totalCount += languages.length;
                     languages.forEach(l => {
-                        const langExt = append(langs, l);
+                        const langExt = append(langs, l.id, l);
                         if (l.configuration) {
                             const confUrl = vscode.Uri.file(path.join(ex.extensionPath, l.configuration));
                             readJsonFile<vscode.LanguageConfiguration>(confUrl, undefined, {}).then((langConf) => {
-                                // log(`${confUrl} ${data.length}B :${l.id}`);
+                                // log(`${confUrl} :${l.id}`);
                                 if (langConf.comments) {
                                     if (langConf.comments.lineComment) {
                                         langExt.lineComments.push(langConf.comments.lineComment);
@@ -445,7 +452,7 @@ const saveLanguageConfigurations = async (langs: { [key: string]: LanguageConf }
     }
 }
 
-const loadLanguageConfigurations = async (conf: Config): Promise<{ [key: string]: LanguageConf }> => {
+const loadLanguageConfigurations = async (conf: Config): Promise<{ [key: string]: Partial<LanguageConf> }> => {
     try {
         switch (conf.saveLocation) {
             case "global settings":
@@ -454,7 +461,7 @@ const loadLanguageConfigurations = async (conf: Config): Promise<{ [key: string]
             case "output directory":
                 const workFolder = await currentWorkspaceFolder();
                 const outputDir = buildUri(workFolder.uri, conf.outputDirectory);
-                return await readJsonFile<{ [key: string]: LanguageConf }>(outputDir, 'languages.json', {});
+                return await readJsonFile<{ [key: string]: Partial<LanguageConf> }>(outputDir, 'languages.json', {});
             default: break;
         }
     } catch (e: any) {
