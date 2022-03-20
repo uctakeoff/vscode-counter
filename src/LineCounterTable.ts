@@ -17,8 +17,8 @@ const uniqueLanguageConf = (conf: LanguageConf) => {
     conf.filenames = [...new Set(conf.filenames)];
     conf.extensions = [...new Set(conf.extensions)];
     conf.lineComments = [...new Set(conf.lineComments)];
-    conf.blockComments = [...new Set(conf.blockComments)];
-    conf.blockStrings = [...new Set(conf.blockStrings)];
+    conf.blockComments = [...new Map(conf.blockComments)];
+    conf.blockStrings = [...new Map(conf.blockStrings)];
     // console.log(`2langExtensions : `, conf);
 };
 export class LineCounterTable {
