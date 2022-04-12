@@ -399,11 +399,12 @@ const collectLanguageConfigurations = (langs: Map<string, LanguageConf>): Promis
                 const languages = ex.packageJSON.contributes?.languages as VscodeLanguage[] ?? undefined;
                 if (languages) {
                     totalCount += languages.length;
-                    languages.forEach(l => {
-                        const langExt = append(langs, l.id, l);
-                        if (l.configuration) {
-                            const confUrl = vscode.Uri.file(path.join(ex.extensionPath, l.configuration));
-                            readJsonFile<vscode.LanguageConfiguration>(confUrl, undefined, {}).then((langConf) => {
+                    languages.forEach(async (l) => {
+                        try {
+                            const langExt = append(langs, l.id, l);
+                            if (l.configuration) {
+                                const confUrl = vscode.Uri.file(path.join(ex.extensionPath, l.configuration));
+                                const langConf = await readJsonFile<vscode.LanguageConfiguration>(confUrl, undefined, {});
                                 // log(`${confUrl} :${l.id}`);
                                 if (langConf.comments) {
                                     if (langConf.comments.lineComment) {
@@ -413,16 +414,10 @@ const collectLanguageConfigurations = (langs: Map<string, LanguageConf>): Promis
                                         langExt.blockComments.push(langConf.comments.blockComment);
                                     }
                                 }
-                                if (++finishedCount >= totalCount) {
-                                    resolve(langs);
-                                }
-                            }, (reason: any) => {
-                                log(`${confUrl} : error ${reason}`);
-                                if (++finishedCount >= totalCount) {
-                                    resolve(langs);
-                                }
-                            });
-                        } else {
+                            }
+                        } catch (reason: any) {
+                            log(`error ${reason}`);
+                        } finally {
                             if (++finishedCount >= totalCount) {
                                 resolve(langs);
                             }
@@ -779,9 +774,6 @@ const mapToObject = <T>(map: Map<string, T>) => {
         obj[id] = v
     })
     return obj;
-}
-const objectToMap = <V>(obj: { [key: string]: V }): Map<string, V> => {
-    return new Map<string, V>(Object.entries(obj));
 }
 
 const getOrSet = <K, V>(map: Map<K, V>, key: K, otherwise: () => V) => {

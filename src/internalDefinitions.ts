@@ -1,14 +1,16 @@
 'use strict';
 import { LanguageConf } from './LineCounterTable';
 
-export const internalDefinitions: {[id:string]: Partial<LanguageConf>} = {
+export const internalDefinitions: { [id: string]: Partial<LanguageConf> } = {
     cpp: {
-        blockStrings: [['R("', '")']]
+        blockStrings: [['R("', '")']],
     },
     javascriptreact: {
-        blockComments: [['{/*', '*/}']]
+        blockStrings: [['`', '`']],
+        blockComments: [['{/*', '*/}']],
     },
     typescriptreact: {
-        blockComments: [['{/*', '*/}']]
+        blockStrings: [['`', '`']],
+        blockComments: [['{/*', '*/}']],
     },
 };
