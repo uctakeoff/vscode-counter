@@ -34,7 +34,7 @@ export default class Gitignore
                     .replace(/(^|[^\\])\?/g, '.')                 // '?' to '.'
                     .replace(/\/\*\*/g, '([\\\\/][^\\\\/]+)?')    // '/**'    '?' is a provisional measure.
                     .replace(/\*\*\//g, '([^\\\\/]+[\\\\/])?')    // '**/'    '?' is a provisional measure.
-                    .replace(/\*/g, '([^\\\\/]+)')                // '*'
+                    .replace(/\*/g, '([^\\\\/]?)')                // '*'
                     .replace(/\?/g, '*')                          // '?' to '*'
                     .replace(/[^\/]$/, '$&(([\\\\/].*)|$)')       // When the trailing character is not '/'.
                     .replace(/\/$/, '(([\\\\/].*)|$)');           // When the trailing character is '/'.
@@ -51,6 +51,9 @@ export default class Gitignore
   }
   public includes(filepath: string): boolean {
     const rule = this.rules.find(v => v.pattern.test(filepath.replace(/\\/g, '/')));
+    // if (rule) {
+    //   console.log(`##GitIgnore ${filepath}: ${rule?.pattern} ${rule?.included}`);
+    // }
     return (rule !== undefined) && rule.included;
   }
   public excludes(filepath: string): boolean {
@@ -66,4 +69,3 @@ export default class Gitignore
     return this.rules.map(rule => `${rule.included ? 'include':'exclude'} : ${rule.pattern}`).join('\n');
   }
 }
-
