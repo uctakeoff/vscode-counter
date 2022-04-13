@@ -9,12 +9,9 @@ This extension uses other language extensions to determine the line of code.Ther
 
 Conversely, as the number of language extensions increases, the range of support for this feature also increases.
 
-## VSCode Counter 2.0 is released!
+### Used in the wonderful extension CodeViz Stat!
 
-* Experimental support for "**VSCode Remote Development**".
-
-    When using VSCode Counter in *VSCode Remote Development*, use the `Save language configurations` function You will need to. 
-    [See below for more information](#save-language-configurations).
+[CodeViz Stat](https://marketplace.visualstudio.com/items?itemName=vizzuhq.code-viz-stat) allows you to see the results of your statistics in beautiful graphs.
 
 ## Features
 

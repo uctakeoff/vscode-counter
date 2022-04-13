@@ -97,9 +97,9 @@ export const readUtf8Files = async (uris: vscode.Uri[]) => {
 
 export const checkJsonType = <T extends boolean | number | string | Array<any> | { [key: string]: any }>(json: any, defaultValue: T): T => {
     if (json === null || json === undefined) return defaultValue;
-    if (Array.isArray(json)) return json as T;
-    const type = typeof json;
-    if ((type === typeof defaultValue) && ['object', 'number', 'boolean', 'string'].some(t => t === type)) {
+    const typeOfT = Array.isArray(defaultValue) ? 'array' : typeof defaultValue;
+    const type = Array.isArray(json) ? 'array' : typeof json;
+    if ((type === typeOfT) && ['object', 'number', 'boolean', 'string', 'array'].some(t => t === type)) {
         return json as T;
     }
     return defaultValue;
