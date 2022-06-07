@@ -715,7 +715,7 @@ class ResultFormatter {
         return [
             `Date : ${toLocalDateString(date)}`,
             '',
-            `Directory ${this.targetDirUri.fsPath}`,
+            `Directory ${this.targetDirUri.fsPath.replace(/\\/g, '\\\\')}`,
             '',
             `Total : ${this.total.files} files,  ${this.total.code} codes, ${this.total.comment} comments, ${this.total.blank} blanks, all ${this.total.total} lines`,
         ];
@@ -746,7 +746,7 @@ class ResultFormatter {
             '## Directories',
             ...dirFormat.headerLines,
             ...[...this.dirResultTable.values()].sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
-                .map(v => dirFormat.line(v.name, v.files, v.code, v.comment, v.blank, v.total)),
+                .map(v => dirFormat.line(v.name.replace(/\\/g, '\\\\'), v.files, v.code, v.comment, v.blank, v.total)),
         ];
     }
     private toMarkdownDetailsLines() {
