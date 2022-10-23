@@ -20,6 +20,7 @@
   "configuration.outputAsMarkdown.description": "結果をMarkdown形式で出力する.",
   "configuration.outputPreviewType.description": "カウント後にプレビューする出力ファイルの種類.",
   "configuration.saveLocation.description": "集めた言語設定を保存する場所を指定する.",
+  "configuration.languageConfUri.description": "saveLocation で \"use languageConfUri\" を指定した場合に用いる保存先ファイルパスまたはURI.",
   "configuration.languages.description": "保存された言語設定.",
   "configuration.languages.aliases.description": "言語の別名.",
   "configuration.languages.filenames.description": "言語に関連付けられたファイル名.",

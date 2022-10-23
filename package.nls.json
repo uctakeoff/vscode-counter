@@ -20,6 +20,7 @@
   "configuration.outputAsMarkdown.description": "Whether to output the result as a Markdown file.",
   "configuration.outputPreviewType.description": "Type of output file to preview after counting.",
   "configuration.saveLocation.description": "Specify where to store the collected language configurations.",
+  "configuration.languageConfUri.description": "The destination file path or URI to be used if saveLocation \"use languageConfUri\" is specified.",
   "configuration.languages.description": "Saved Language Configurations.",
   "configuration.languages.aliases.description": "Name aliases for the language.",
   "configuration.languages.filenames.description": "Filenames associated to the language.",
