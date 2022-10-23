@@ -18,7 +18,13 @@ export const currentWorkspaceFolder = async () => {
 
 export const buildUri = (uri: vscode.Uri, ...names: string[]) => uri.with({ path: `${uri.path}/${names.join('/')}` });
 export const dirUri = (uri: vscode.Uri) => uri.with({ path: path.dirname(uri.path) });
-
+export const parseUriOrFile = (uriOrFileath: string, baseUri?: vscode.Uri) => {
+    const u = vscode.Uri.parse(uriOrFileath);
+    // log(uriOrFileath, u.toString(), path.isAbsolute(uriOrFileath), baseUri?.toString(), buildUri(baseUri??u, uriOrFileath).fsPath, (!baseUri || path.isAbsolute(uriOrFileath)));
+    return uriOrFileath.startsWith(u.scheme + ':/') ? u 
+        : (!baseUri || path.isAbsolute(uriOrFileath)) ? vscode.Uri.file(uriOrFileath)
+        : buildUri(baseUri, uriOrFileath);
+}
 const decoderU8 = new TextDecoder('utf8');
 const encoderU8 = new TextEncoder();
 
@@ -153,8 +159,8 @@ export const showTextPreview = async (uri: vscode.Uri) => {
         await showTextFile(uri);
     }
 }
-export const writeTextFile = async (baseUri: vscode.Uri, path: string, text: string) => {
-    const uri = buildUri(baseUri, path);
+export const writeTextFile = async (baseUri: vscode.Uri, path: string | undefined, text: string) => {
+    const uri = path ? buildUri(baseUri, path) : baseUri;
     // log(`writeTextFile : ${uri} ${text.length}B`);
     await vscode.workspace.fs.writeFile(uri, encoderU8.encode(text));
     return uri;

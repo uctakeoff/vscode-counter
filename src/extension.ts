@@ -6,7 +6,7 @@ import * as path from 'path';
 import { Count } from './LineCounter';
 import { LanguageConf, LineCounterTable } from './LineCounterTable';
 import Gitignore from './Gitignore';
-import { buildUri, createTextDecoder, currentWorkspaceFolder, dirUri, makeDirectories, readJsonFile, readUtf8Files, showTextPreview, writeTextFile } from './vscode-utils';
+import { buildUri, createTextDecoder, currentWorkspaceFolder, dirUri, makeDirectories, parseUriOrFile, readJsonFile, readUtf8Files, showTextPreview, writeTextFile } from './vscode-utils';
 import { internalDefinitions } from './internalDefinitions';
 
 const EXTENSION_ID = 'uctakeoff.vscode-counter';
@@ -55,6 +55,8 @@ export const activate = (context: vscode.ExtensionContext) => {
 // this method is called when your extension is deactivated
 export const deactivate = () => { }
 
+type LanguageLocation = 'global settings' | 'workspace settings' | 'output directory' | 'use languageConfUri';
+
 const loadConfig = () => {
     const conf = vscode.workspace.getConfiguration(CONFIGURATION_SECTION);
     const confFiles = vscode.workspace.getConfiguration("files", null);
@@ -66,8 +68,9 @@ const loadConfig = () => {
     }
     return {
         configuration: conf,
-        saveLocation: conf.get<string>('saveLocation', 'global settings'),
+        saveLocation: conf.get<string>('saveLocation', 'global settings') as LanguageLocation,
         outputDirectory: conf.get('outputDirectory', '.VSCodeCounter'),
+        languageConfUri: conf.get('languageConfUri', ''),
         // include: `{${include.join(',')}}`,
         // exclude: `{${exclude.join(',')}}`,
         include: include.join(','),
@@ -437,13 +440,19 @@ const saveLanguageConfigurations = async (langs: { [key: string]: LanguageConf }
         case "workspace settings":
             conf.configuration.update('languages', langs, vscode.ConfigurationTarget.Workspace);
             break;
-        case "output directory":
+        case "output directory":{
             const workFolder = await currentWorkspaceFolder();
             const outputDir = buildUri(workFolder.uri, conf.outputDirectory);
             await makeDirectories(outputDir);
             await writeTextFile(outputDir, 'languages.json', JSON.stringify(langs));
             break;
-        default: break;
+        }
+        case "use languageConfUri":{
+            const workFolder = await currentWorkspaceFolder();
+            await writeTextFile(parseUriOrFile(conf.languageConfUri, workFolder.uri), undefined, JSON.stringify(langs));
+            break;
+        }
+    default: break;
     }
 }
 
@@ -457,10 +466,14 @@ const loadLanguageConfigurations = async (conf: Config): Promise<{ [key: string]
                 const workFolder = await currentWorkspaceFolder();
                 const outputDir = buildUri(workFolder.uri, conf.outputDirectory);
                 return await readJsonFile<{ [key: string]: Partial<LanguageConf> }>(outputDir, 'languages.json', {});
+            case "use languageConfUri":{
+                const workFolder = await currentWorkspaceFolder();
+                return await readJsonFile<{ [key: string]: Partial<LanguageConf> }>(parseUriOrFile(conf.languageConfUri, workFolder.uri), undefined, {});
+            }
             default: break;
         }
     } catch (e: any) {
-        log(`loadLanguageConfigurations failed. ${e.message}`);
+        showError(`loadLanguageConfigurations failed. ${e.message}`);
     }
     return {};
 }
@@ -566,7 +579,6 @@ class Statistics extends Count {
         return super.add(value);
     }
 }
-
 class MarkdownTableFormatter {
     private valueToString: (obj: any) => string;
     private columnInfo: { title: string, format: string }[];
