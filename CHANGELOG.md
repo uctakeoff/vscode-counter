@@ -7,6 +7,17 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 * workspace counter in status bar.
 
+## [3.2.0]
+
+### Changed
+
+- Count the files in the top-level as a separate item #81
+
+## [3.1.0]
+
+### Changed
+
+- Support storing collected language elsewhere #78
 ## [3.0.0]
 
 ### Changed

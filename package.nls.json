@@ -14,6 +14,7 @@
   "configuration.exclude.description": "Configure glob patterns for excluding files and folders.",
   "configuration.include.description": "Configure glob patterns for including files and folders.",
   "configuration.history.description": "Controls the number of recent result to keep in history. If it is greater than 1, save the results in separate directories.",
+  "configuration.countDirectLevelFiles.description": "Count the files in the direct level as a separate item.",
   "configuration.outputDirectory.description": "Directory path for outputting results.",
   "configuration.outputAsText.description": "Whether to output the result as a text file.",
   "configuration.outputAsCSV.description": "Whether to output the result as a CSV file.",

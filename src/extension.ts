@@ -91,6 +91,7 @@ const loadConfig = () => {
         outputAsText: conf.get('outputAsText', true),
         outputAsCSV: conf.get('outputAsCSV', true),
         outputAsMarkdown: conf.get('outputAsMarkdown', true),
+        countDirectLevelFiles: conf.get('countDirectLevelFiles', true),
     };
 }
 type Config = ReturnType<typeof loadConfig>;
@@ -490,7 +491,7 @@ const outputResults = async (date: Date, targetDirUri: vscode.Uri, results: Resu
     await makeDirectories(outputDir);
     writeTextFile(outputDir, `results.json`, resultsToJson(results));
 
-    const resultTable = new ResultFormatter(targetDirUri, results, conf.endOfLine, conf.printNumberWithCommas ? toStringWithCommas : undefined);
+    const resultTable = new ResultFormatter(targetDirUri, results, conf);
     log(`OutputDir : ${outputDir}, count ${results.length} files`);
 
     const diffs: Result[] = [];
@@ -518,7 +519,7 @@ const outputResults = async (date: Date, targetDirUri: vscode.Uri, results: Resu
             diffs.length = 0;
         }
     }
-    const diffTable = new ResultFormatter(targetDirUri, diffs, conf.endOfLine, conf.printNumberWithCommas ? toStringWithCommas : undefined);
+    const diffTable = new ResultFormatter(targetDirUri, diffs, conf);
 
     if (conf.outputAsText) {
         await writeTextFile(outputDir, 'results.txt', resultTable.toTextLines(date));
@@ -609,10 +610,17 @@ class ResultFormatter {
     private dirResultTable = new Map<string, Statistics>();
     private langResultTable = new Map<string, Statistics>();
     private total = new Statistics('Total');
+    private endOfLine: string;
+    private valueToString: (obj: any) => string;
 
-    constructor(private targetDirUri: vscode.Uri, private results: Result[], private endOfLine: string, private valueToString = (obj: any) => obj.toString()) {
+    constructor(private targetDirUri: vscode.Uri, private results: Result[], conf: {countDirectLevelFiles: boolean, endOfLine: string, printNumberWithCommas: boolean}) {
+        this.endOfLine = conf.endOfLine;
+        this.valueToString = conf.printNumberWithCommas ? toStringWithCommas : (obj: any) => obj.toString();
+
+        const directLevelResultTable = new Map<string, Statistics>();
         results.forEach((result) => {
             let parent = path.dirname(path.relative(this.targetDirUri.fsPath, result.filename));
+            getOrSet(directLevelResultTable, parent, () => new Statistics(parent + " (Files)")).add(result);
             while (parent.length >= 0) {
                 getOrSet(this.dirResultTable, parent, () => new Statistics(parent)).add(result);
                 const p = path.dirname(parent);
@@ -624,6 +632,12 @@ class ResultFormatter {
             getOrSet(this.langResultTable, result.language, () => new Statistics(result.language)).add(result);
             this.total.add(result);
         });
+        if (conf.countDirectLevelFiles) {
+            [...directLevelResultTable.entries()].filter(([key, value]) => {
+                log(`  dir[${value.name}] total=${value.total}  ${(this.dirResultTable.get(key)?.total??0)}` );
+                return value.total !== (this.dirResultTable.get(key)?.total??0);
+            }).forEach(([, value]) => this.dirResultTable.set(value.name, value));
+        }
     }
     toCSVLines() {
         const languages = [...this.langResultTable.keys()];
