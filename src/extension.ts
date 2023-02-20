@@ -269,7 +269,7 @@ class CodeCounterController {
                 const result = editor.selections
                     .map(s => lineCounter.count(doc.getText(s)))
                     .reduce((prev, cur) => prev.add(cur), new Count());
-                this.showStatusBar(`Selected Code:${result.code} Comment:${result.comment} Blank:${result.blank}`);
+                this.showStatusBar(`Selected Code: ${result.code} Comment: ${result.comment} Blank: ${result.blank}`);
             } else {
                 this.showStatusBar();
             }
