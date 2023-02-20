@@ -283,7 +283,7 @@ class CodeCounterController {
             const lineCounter = c.getCounter(doc.uri.fsPath, doc.languageId);
             if (lineCounter) {
                 const result = lineCounter?.count(doc.getText());
-                this.showStatusBar(`Code:${result.code} Comment:${result.comment} Blank:${result.blank}`);
+                this.showStatusBar(`Code: ${result.code} Comment: ${result.comment} Blank: ${result.blank}`);
             } else {
                 this.showStatusBar();
             }
