@@ -409,7 +409,7 @@ const collectLanguageConfigurations = (langs: Map<string, LanguageConf>): Promis
                             if (l.configuration) {
                                 const confUrl = vscode.Uri.file(path.join(ex.extensionPath, l.configuration));
                                 const langConf = await readJsonFile<vscode.LanguageConfiguration>(confUrl, undefined, {});
-                                // log(`${confUrl} :${l.id}`);
+                                // log(`"${confUrl.fsPath}" :${l.id}\n aliases:${l.aliases}\n extensions:${l.extensions}\n filenames:${l.filenames}`, l);
                                 if (langConf.comments) {
                                     if (langConf.comments.lineComment) {
                                         langExt.lineComments.push(langConf.comments.lineComment);

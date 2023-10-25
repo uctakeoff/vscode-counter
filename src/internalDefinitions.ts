@@ -13,4 +13,13 @@ export const internalDefinitions: { [id: string]: Partial<LanguageConf> } = {
         blockStrings: [['`', '`']],
         blockComments: [['{/*', '*/}']],
     },
+    bat: {
+        lineComments: [
+            '::',
+            'REM',
+            '@REM',
+            'rem',
+            '@rem',
+        ]
+    }
 };
