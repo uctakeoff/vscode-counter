@@ -85,6 +85,7 @@ const loadConfig = () => {
         history: Math.max(1, conf.get('history', 5)),
         languages: conf.get<{ [key: string]: Partial<LanguageConf> }>('languages', {}),
 
+        includeIncompleteLine: conf.get('includeIncompleteLine', false),
         endOfLine: conf.get('endOfLine', '\n'),
         printNumberWithCommas: conf.get('printNumberWithCommas', true),
         outputPreviewType: conf.get<string>('outputPreviewType', ''),
@@ -230,7 +231,13 @@ class CodeCounterController {
             }
 
             const counter = await this.getCodeCounter();
-            const results = await countLines(counter, targetFiles, this.conf.maxOpenFiles, this.conf.encoding, this.conf.ignoreUnsupportedFile, (msg: string) => statusBar.text = `VSCodeCounter: ${msg}`);
+            const results = await countLines(counter, targetFiles, {
+                maxOpenFiles: this.conf.maxOpenFiles, 
+                fileEncoding: this.conf.encoding, 
+                ignoreUnsupportedFile: this.conf.ignoreUnsupportedFile, 
+                includeIncompleteLine: this.conf.includeIncompleteLine, 
+                showStatus: (msg: string) => statusBar.text = `VSCodeCounter: ${msg}`
+            });
             if (results.length <= 0) {
                 throw Error(`There was no target file.`);
             }
@@ -267,7 +274,7 @@ class CodeCounterController {
             const lineCounter = c.getCounter(doc.uri.fsPath, doc.languageId);
             if (lineCounter) {
                 const result = editor.selections
-                    .map(s => lineCounter.count(doc.getText(s)))
+                    .map(s => lineCounter.count(doc.getText(s), this.conf.includeIncompleteLine))
                     .reduce((prev, cur) => prev.add(cur), new Count());
                 this.showStatusBar(`Selected Code: ${result.code} Comment: ${result.comment} Blank: ${result.blank}`);
             } else {
@@ -282,7 +289,7 @@ class CodeCounterController {
             const c = await this.getCodeCounter();
             const lineCounter = c.getCounter(doc.uri.fsPath, doc.languageId);
             if (lineCounter) {
-                const result = lineCounter?.count(doc.getText());
+                const result = lineCounter?.count(doc.getText(), this.conf.includeIncompleteLine);
                 this.showStatusBar(`Code: ${result.code} Comment: ${result.comment} Blank: ${result.blank}`);
             } else {
                 this.showStatusBar();
@@ -311,15 +318,21 @@ const loadGitIgnore = async () => {
     const values = await readUtf8Files(gitignoreFiles.sort());
     return new Gitignore('').merge(...values.map(p => new Gitignore(p.data, dirUri(p.uri).fsPath)));
 }
-
-const countLines = (lineCounterTable: LineCounterTable, fileUris: vscode.Uri[], maxOpenFiles: number, fileEncoding: string, ignoreUnsupportedFile: boolean, showStatus: (text: string) => void) => {
+type CountLineOption = {
+    maxOpenFiles: number;
+    fileEncoding: string;
+    ignoreUnsupportedFile?: boolean;
+    includeIncompleteLine?: boolean;
+    showStatus?: (text: string) => void;
+};
+const countLines = (lineCounterTable: LineCounterTable, fileUris: vscode.Uri[], option: CountLineOption) => {
     log(`countLines : target ${fileUris.length} files`);
     return new Promise(async (resolve: (value: Result[]) => void, reject: (reason: string) => void) => {
         const results: Result[] = [];
         if (fileUris.length <= 0) {
             resolve(results);
         }
-        const decoder = createTextDecoder(fileEncoding);
+        const decoder = createTextDecoder(option.fileEncoding);
         const totalFiles = fileUris.length;
         let fileCount = 0;
         const onFinish = () => {
@@ -333,16 +346,15 @@ const countLines = (lineCounterTable: LineCounterTable, fileUris: vscode.Uri[], 
             const fileUri = fileUris[i];
             const lineCounter = lineCounterTable.getCounter(fileUri.fsPath);
             if (lineCounter) {
-
-                while ((i - fileCount) >= maxOpenFiles) {
+                while ((i - fileCount) >= option.maxOpenFiles) {
                     // log(`sleep : total:${totalFiles} current:${i} finished:${fileCount} valid:${results.length}`);
-                    showStatus(`${fileCount}/${totalFiles}`);
+                    option.showStatus?.(`${fileCount}/${totalFiles}`);
                     await sleep(50);
                 }
 
                 vscode.workspace.fs.readFile(fileUri).then(data => {
                     try {
-                        results.push(new Result(fileUri, lineCounter.name, lineCounter.count(decoder.decode(data))));
+                        results.push(new Result(fileUri, lineCounter.name, lineCounter.count(decoder.decode(data), option.includeIncompleteLine)));
                     } catch (e: any) {
                         log(`"${fileUri}" Read Error : ${e.message}.`);
                         results.push(new Result(fileUri, '(Read Error)'));
@@ -355,7 +367,7 @@ const countLines = (lineCounterTable: LineCounterTable, fileUris: vscode.Uri[], 
                         onFinish();
                     });
             } else {
-                if (!ignoreUnsupportedFile) {
+                if (!option.ignoreUnsupportedFile) {
                     results.push(new Result(fileUri, '(Unsupported)'));
                 }
                 onFinish();

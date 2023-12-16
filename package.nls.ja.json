@@ -10,6 +10,7 @@
   "configuration.maxOpenFiles.description": "VSCodeCounter が同時に読み取ることのできるファイルの最大数.",
   "configuration.printNumberWithCommas.description": "数値をカンマ区切りで出力する (CSVを除く).",
   "configuration.ignoreUnsupportedFile.description": "サポートしないファイルを無視する.",
+  "configuration.includeIncompleteLine.description": "改行で終わらない行(最終行)を含める.",
   "configuration.endOfLine.description": "出力ファイルで使用する改行文字.",
   "configuration.exclude.description": "ファイルとフォルダーを除外するための glob パターン.",
   "configuration.include.description": "ファイルとフォルダーを追加するための glob パターン.",
