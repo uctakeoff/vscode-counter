@@ -50,14 +50,18 @@ export class LineCounter {
         private lineComments: string[],
         private blockComments: [string, string][],
         private blockStrings: [string, string][]) {
-            this.blockCommentBegins = this.blockComments.map(b => b[0]);
-            this.blockStringBegins = this.blockStrings.map(b => b[0]);
+        this.blockCommentBegins = this.blockComments.map(b => b[0]);
+        this.blockStringBegins = this.blockStrings.map(b => b[0]);
     }
-    public count(text: string): Count {
+    public count(text: string, includeIncompleteLine = false): Count {
         let result = [0, 0, 0];
         let blockCommentEnd = '';
         let blockStringEnd = '';
-        text.split(/\r\n|\r|\n/).map(line => line.trim()).forEach((line, lineIndex) => {
+        const lines = text.split(/\r\n|\r|\n/).map(line => line.trim());
+        if (!includeIncompleteLine) {
+            lines.pop();
+        }
+        lines.forEach((line, lineIndex) => {
             let type = (blockCommentEnd.length > 0) ? LineType.Comment : (blockStringEnd.length > 0) ? LineType.Code : LineType.Blank;
             let i = 0;
             while (i < line.length) {

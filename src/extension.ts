@@ -12,6 +12,7 @@ import { internalDefinitions } from './internalDefinitions';
 const EXTENSION_ID = 'uctakeoff.vscode-counter';
 const EXTENSION_NAME = 'VSCodeCounter';
 const CONFIGURATION_SECTION = 'VSCodeCounter';
+const REALTIME_COUNTER_FILE = '.VSCodeCounterCountRealtime';
 const toZeroPadString = (num: number, fig: number) => num.toString().padStart(fig, '0');
 const toLocalDateString = (date: Date, delims: [string, string, string] = ['-', ' ', ':']) => {
     return `${date.getFullYear()}${delims[0]}${toZeroPadString(date.getMonth() + 1, 2)}${delims[0]}${toZeroPadString(date.getDate(), 2)}${delims[1]}`
@@ -85,6 +86,7 @@ const loadConfig = () => {
         history: Math.max(1, conf.get('history', 5)),
         languages: conf.get<{ [key: string]: Partial<LanguageConf> }>('languages', {}),
 
+        includeIncompleteLine: conf.get('includeIncompleteLine', false),
         endOfLine: conf.get('endOfLine', '\n'),
         printNumberWithCommas: conf.get('printNumberWithCommas', true),
         outputPreviewType: conf.get<string>('outputPreviewType', ''),
@@ -115,6 +117,12 @@ class CodeCounterController {
 
         // create a combined disposable from both event subscriptions
         this.disposable = vscode.Disposable.from(...subscriptions);
+
+        currentWorkspaceFolder().then((workFolder) => {
+            vscode.workspace.fs.stat(buildUri(workFolder.uri, this.conf.outputDirectory, REALTIME_COUNTER_FILE)).then(st => {
+                this.toggleVisible();
+            });
+        });
     }
     dispose() {
         this.statusBarItem?.dispose();
@@ -158,9 +166,15 @@ class CodeCounterController {
         if (!this.statusBarItem) {
             this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100000);
             this.countLinesInEditor(vscode.window.activeTextEditor);
+            currentWorkspaceFolder().then((workFolder) => {
+                writeTextFile(buildUri(workFolder.uri, this.conf.outputDirectory, REALTIME_COUNTER_FILE), '', {recursive: true});
+            });
         } else {
             this.statusBarItem.dispose();
             this.statusBarItem = null;
+            currentWorkspaceFolder().then((workFolder) => {
+                vscode.workspace.fs.delete(buildUri(workFolder.uri, this.conf.outputDirectory, REALTIME_COUNTER_FILE));
+            });
         }
     }
 
@@ -230,7 +244,13 @@ class CodeCounterController {
             }
 
             const counter = await this.getCodeCounter();
-            const results = await countLines(counter, targetFiles, this.conf.maxOpenFiles, this.conf.encoding, this.conf.ignoreUnsupportedFile, (msg: string) => statusBar.text = `VSCodeCounter: ${msg}`);
+            const results = await countLines(counter, targetFiles, {
+                maxOpenFiles: this.conf.maxOpenFiles, 
+                fileEncoding: this.conf.encoding, 
+                ignoreUnsupportedFile: this.conf.ignoreUnsupportedFile, 
+                includeIncompleteLine: this.conf.includeIncompleteLine, 
+                showStatus: (msg: string) => statusBar.text = `VSCodeCounter: ${msg}`
+            });
             if (results.length <= 0) {
                 throw Error(`There was no target file.`);
             }
@@ -267,7 +287,7 @@ class CodeCounterController {
             const lineCounter = c.getCounter(doc.uri.fsPath, doc.languageId);
             if (lineCounter) {
                 const result = editor.selections
-                    .map(s => lineCounter.count(doc.getText(s)))
+                    .map(s => lineCounter.count(doc.getText(s), this.conf.includeIncompleteLine))
                     .reduce((prev, cur) => prev.add(cur), new Count());
                 this.showStatusBar(`Selected Code: ${result.code} Comment: ${result.comment} Blank: ${result.blank}`);
             } else {
@@ -282,7 +302,7 @@ class CodeCounterController {
             const c = await this.getCodeCounter();
             const lineCounter = c.getCounter(doc.uri.fsPath, doc.languageId);
             if (lineCounter) {
-                const result = lineCounter?.count(doc.getText());
+                const result = lineCounter?.count(doc.getText(), this.conf.includeIncompleteLine);
                 this.showStatusBar(`Code: ${result.code} Comment: ${result.comment} Blank: ${result.blank}`);
             } else {
                 this.showStatusBar();
@@ -311,15 +331,21 @@ const loadGitIgnore = async () => {
     const values = await readUtf8Files(gitignoreFiles.sort());
     return new Gitignore('').merge(...values.map(p => new Gitignore(p.data, dirUri(p.uri).fsPath)));
 }
-
-const countLines = (lineCounterTable: LineCounterTable, fileUris: vscode.Uri[], maxOpenFiles: number, fileEncoding: string, ignoreUnsupportedFile: boolean, showStatus: (text: string) => void) => {
+type CountLineOption = {
+    maxOpenFiles: number;
+    fileEncoding: string;
+    ignoreUnsupportedFile?: boolean;
+    includeIncompleteLine?: boolean;
+    showStatus?: (text: string) => void;
+};
+const countLines = (lineCounterTable: LineCounterTable, fileUris: vscode.Uri[], option: CountLineOption) => {
     log(`countLines : target ${fileUris.length} files`);
     return new Promise(async (resolve: (value: Result[]) => void, reject: (reason: string) => void) => {
         const results: Result[] = [];
         if (fileUris.length <= 0) {
             resolve(results);
         }
-        const decoder = createTextDecoder(fileEncoding);
+        const decoder = createTextDecoder(option.fileEncoding);
         const totalFiles = fileUris.length;
         let fileCount = 0;
         const onFinish = () => {
@@ -333,16 +359,15 @@ const countLines = (lineCounterTable: LineCounterTable, fileUris: vscode.Uri[], 
             const fileUri = fileUris[i];
             const lineCounter = lineCounterTable.getCounter(fileUri.fsPath);
             if (lineCounter) {
-
-                while ((i - fileCount) >= maxOpenFiles) {
+                while ((i - fileCount) >= option.maxOpenFiles) {
                     // log(`sleep : total:${totalFiles} current:${i} finished:${fileCount} valid:${results.length}`);
-                    showStatus(`${fileCount}/${totalFiles}`);
+                    option.showStatus?.(`${fileCount}/${totalFiles}`);
                     await sleep(50);
                 }
 
                 vscode.workspace.fs.readFile(fileUri).then(data => {
                     try {
-                        results.push(new Result(fileUri, lineCounter.name, lineCounter.count(decoder.decode(data))));
+                        results.push(new Result(fileUri, lineCounter.name, lineCounter.count(decoder.decode(data), option.includeIncompleteLine)));
                     } catch (e: any) {
                         log(`"${fileUri}" Read Error : ${e.message}.`);
                         results.push(new Result(fileUri, '(Read Error)'));
@@ -355,7 +380,7 @@ const countLines = (lineCounterTable: LineCounterTable, fileUris: vscode.Uri[], 
                         onFinish();
                     });
             } else {
-                if (!ignoreUnsupportedFile) {
+                if (!option.ignoreUnsupportedFile) {
                     results.push(new Result(fileUri, '(Unsupported)'));
                 }
                 onFinish();
@@ -443,14 +468,12 @@ const saveLanguageConfigurations = async (langs: { [key: string]: LanguageConf }
             break;
         case "output directory":{
             const workFolder = await currentWorkspaceFolder();
-            const outputDir = buildUri(workFolder.uri, conf.outputDirectory);
-            await makeDirectories(outputDir);
-            await writeTextFile(outputDir, 'languages.json', JSON.stringify(langs));
+            await writeTextFile(buildUri(workFolder.uri, conf.outputDirectory, 'languages.json'), JSON.stringify(langs), {recursive: true});
             break;
         }
         case "use languageConfUri":{
             const workFolder = await currentWorkspaceFolder();
-            await writeTextFile(parseUriOrFile(conf.languageConfUri, workFolder.uri), undefined, JSON.stringify(langs));
+            await writeTextFile(parseUriOrFile(conf.languageConfUri, workFolder.uri), JSON.stringify(langs), {recursive: true});
             break;
         }
     default: break;
@@ -489,7 +512,7 @@ const previewFiles = new Map<string, string>([
 ]);
 const outputResults = async (date: Date, targetDirUri: vscode.Uri, results: Result[], outputDir: vscode.Uri, prevOutputDir: vscode.Uri | undefined, conf: Config) => {
     await makeDirectories(outputDir);
-    writeTextFile(outputDir, `results.json`, resultsToJson(results));
+    writeTextFile(buildUri(outputDir, `results.json`), resultsToJson(results));
 
     const resultTable = new ResultFormatter(targetDirUri, results, conf);
     log(`OutputDir : ${outputDir}, count ${results.length} files`);
@@ -522,12 +545,12 @@ const outputResults = async (date: Date, targetDirUri: vscode.Uri, results: Resu
     const diffTable = new ResultFormatter(targetDirUri, diffs, conf);
 
     if (conf.outputAsText) {
-        await writeTextFile(outputDir, 'results.txt', resultTable.toTextLines(date));
-        await writeTextFile(outputDir, 'diff.txt', diffTable.toTextLines(date));
+        await writeTextFile(buildUri(outputDir, 'results.txt'), resultTable.toTextLines(date));
+        await writeTextFile(buildUri(outputDir, 'diff.txt'), diffTable.toTextLines(date));
     }
     if (conf.outputAsCSV) {
-        await writeTextFile(outputDir, 'results.csv', resultTable.toCSVLines());
-        await writeTextFile(outputDir, 'diff.csv', diffTable.toCSVLines());
+        await writeTextFile(buildUri(outputDir, 'results.csv'), resultTable.toCSVLines());
+        await writeTextFile(buildUri(outputDir, 'diff.csv'), diffTable.toCSVLines());
     }
     if (conf.outputAsMarkdown) {
         const mds = [
@@ -537,7 +560,7 @@ const outputResults = async (date: Date, targetDirUri: vscode.Uri, results: Resu
             { title: 'Diff Details', path: 'diff-details.md', table: diffTable, detail: true },
         ];
         await Promise.all(mds.map(({ title, path, table, detail }, index) => {
-            return writeTextFile(outputDir, path, table.toMarkdown(date, title, detail, mds.map((f, i) => [f.title, i === index ? undefined : f.path])));
+            return writeTextFile(buildUri(outputDir, path), table.toMarkdown(date, title, detail, mds.map((f, i) => [f.title, i === index ? undefined : f.path])));
         }));
     }
     const previewFile = previewFiles.get(conf.outputPreviewType);

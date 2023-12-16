@@ -10,6 +10,7 @@
   "configuration.maxOpenFiles.description": "Maximum number of files that VSCodeCounter can read simultaneously.",
   "configuration.printNumberWithCommas.description": "Whether to print a number with commas as thousands separators.(except for CSV)",
   "configuration.ignoreUnsupportedFile.description": "Ignore unsupported files.",
+  "configuration.includeIncompleteLine.description": "Include lines that do not end in a newline (last line).",
   "configuration.endOfLine.description": "A new line character to be used in the output file.",
   "configuration.exclude.description": "Configure glob patterns for excluding files and folders.",
   "configuration.include.description": "Configure glob patterns for including files and folders.",
