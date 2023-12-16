@@ -159,8 +159,10 @@ export const showTextPreview = async (uri: vscode.Uri) => {
         await showTextFile(uri);
     }
 }
-export const writeTextFile = async (baseUri: vscode.Uri, path: string | undefined, text: string) => {
-    const uri = path ? buildUri(baseUri, path) : baseUri;
+export const writeTextFile = async (uri: vscode.Uri, text: string, option?: {recursive?: boolean}) => {
+    if (option?.recursive) {
+        await makeDirectories(dirUri(uri));
+    }
     // log(`writeTextFile : ${uri} ${text.length}B`);
     await vscode.workspace.fs.writeFile(uri, encoderU8.encode(text));
     return uri;

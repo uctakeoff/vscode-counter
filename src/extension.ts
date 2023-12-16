@@ -12,6 +12,7 @@ import { internalDefinitions } from './internalDefinitions';
 const EXTENSION_ID = 'uctakeoff.vscode-counter';
 const EXTENSION_NAME = 'VSCodeCounter';
 const CONFIGURATION_SECTION = 'VSCodeCounter';
+const REALTIME_COUNTER_FILE = '.VSCodeCounterCountRealtime';
 const toZeroPadString = (num: number, fig: number) => num.toString().padStart(fig, '0');
 const toLocalDateString = (date: Date, delims: [string, string, string] = ['-', ' ', ':']) => {
     return `${date.getFullYear()}${delims[0]}${toZeroPadString(date.getMonth() + 1, 2)}${delims[0]}${toZeroPadString(date.getDate(), 2)}${delims[1]}`
@@ -116,6 +117,12 @@ class CodeCounterController {
 
         // create a combined disposable from both event subscriptions
         this.disposable = vscode.Disposable.from(...subscriptions);
+
+        currentWorkspaceFolder().then((workFolder) => {
+            vscode.workspace.fs.stat(buildUri(workFolder.uri, this.conf.outputDirectory, REALTIME_COUNTER_FILE)).then(st => {
+                this.toggleVisible();
+            });
+        });
     }
     dispose() {
         this.statusBarItem?.dispose();
@@ -159,9 +166,15 @@ class CodeCounterController {
         if (!this.statusBarItem) {
             this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100000);
             this.countLinesInEditor(vscode.window.activeTextEditor);
+            currentWorkspaceFolder().then((workFolder) => {
+                writeTextFile(buildUri(workFolder.uri, this.conf.outputDirectory, REALTIME_COUNTER_FILE), '', {recursive: true});
+            });
         } else {
             this.statusBarItem.dispose();
             this.statusBarItem = null;
+            currentWorkspaceFolder().then((workFolder) => {
+                vscode.workspace.fs.delete(buildUri(workFolder.uri, this.conf.outputDirectory, REALTIME_COUNTER_FILE));
+            });
         }
     }
 
@@ -455,14 +468,12 @@ const saveLanguageConfigurations = async (langs: { [key: string]: LanguageConf }
             break;
         case "output directory":{
             const workFolder = await currentWorkspaceFolder();
-            const outputDir = buildUri(workFolder.uri, conf.outputDirectory);
-            await makeDirectories(outputDir);
-            await writeTextFile(outputDir, 'languages.json', JSON.stringify(langs));
+            await writeTextFile(buildUri(workFolder.uri, conf.outputDirectory, 'languages.json'), JSON.stringify(langs), {recursive: true});
             break;
         }
         case "use languageConfUri":{
             const workFolder = await currentWorkspaceFolder();
-            await writeTextFile(parseUriOrFile(conf.languageConfUri, workFolder.uri), undefined, JSON.stringify(langs));
+            await writeTextFile(parseUriOrFile(conf.languageConfUri, workFolder.uri), JSON.stringify(langs), {recursive: true});
             break;
         }
     default: break;
@@ -501,7 +512,7 @@ const previewFiles = new Map<string, string>([
 ]);
 const outputResults = async (date: Date, targetDirUri: vscode.Uri, results: Result[], outputDir: vscode.Uri, prevOutputDir: vscode.Uri | undefined, conf: Config) => {
     await makeDirectories(outputDir);
-    writeTextFile(outputDir, `results.json`, resultsToJson(results));
+    writeTextFile(buildUri(outputDir, `results.json`), resultsToJson(results));
 
     const resultTable = new ResultFormatter(targetDirUri, results, conf);
     log(`OutputDir : ${outputDir}, count ${results.length} files`);
@@ -534,12 +545,12 @@ const outputResults = async (date: Date, targetDirUri: vscode.Uri, results: Resu
     const diffTable = new ResultFormatter(targetDirUri, diffs, conf);
 
     if (conf.outputAsText) {
-        await writeTextFile(outputDir, 'results.txt', resultTable.toTextLines(date));
-        await writeTextFile(outputDir, 'diff.txt', diffTable.toTextLines(date));
+        await writeTextFile(buildUri(outputDir, 'results.txt'), resultTable.toTextLines(date));
+        await writeTextFile(buildUri(outputDir, 'diff.txt'), diffTable.toTextLines(date));
     }
     if (conf.outputAsCSV) {
-        await writeTextFile(outputDir, 'results.csv', resultTable.toCSVLines());
-        await writeTextFile(outputDir, 'diff.csv', diffTable.toCSVLines());
+        await writeTextFile(buildUri(outputDir, 'results.csv'), resultTable.toCSVLines());
+        await writeTextFile(buildUri(outputDir, 'diff.csv'), diffTable.toCSVLines());
     }
     if (conf.outputAsMarkdown) {
         const mds = [
@@ -549,7 +560,7 @@ const outputResults = async (date: Date, targetDirUri: vscode.Uri, results: Resu
             { title: 'Diff Details', path: 'diff-details.md', table: diffTable, detail: true },
         ];
         await Promise.all(mds.map(({ title, path, table, detail }, index) => {
-            return writeTextFile(outputDir, path, table.toMarkdown(date, title, detail, mds.map((f, i) => [f.title, i === index ? undefined : f.path])));
+            return writeTextFile(buildUri(outputDir, path), table.toMarkdown(date, title, detail, mds.map((f, i) => [f.title, i === index ? undefined : f.path])));
         }));
     }
     const previewFile = previewFiles.get(conf.outputPreviewType);

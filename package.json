@@ -33,6 +33,7 @@
     "line"
   ],
   "activationEvents": [
+    "workspaceContains:**/.VSCodeCounterCountRealtime",
     "onCommand:extension.vscode-counter.countInFile",
     "onCommand:extension.vscode-counter.countInDirectory",
     "onCommand:extension.vscode-counter.countInWorkspace",

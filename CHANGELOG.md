@@ -11,6 +11,8 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ### Changed
 - Change the line counting method [#96](https://github.com/uctakeoff/vscode-counter/issues/96).
   - In line with the POSIX definition of lines in text files, lines that do not end with a newline (i.e., the last line) are not included in the count.However, the default setting is the same as before to avoid confusion.
+- Enable the real-time counter at start-up.
+  - However, it should not be resident.
 
 ## [3.2.2]
 ### Fixed
