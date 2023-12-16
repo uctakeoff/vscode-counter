@@ -7,10 +7,15 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 * workspace counter in status bar.
 
+## [3.4.0]
+### Fixed
+- Defects caused by comment keywords present in the string. [#88](https://github.com/uctakeoff/vscode-counter/issues/88)
+  - Not a complete fix, but should be better than before.
+
 ## [3.3.0]
 ### Changed
 - Change the line counting method [#96](https://github.com/uctakeoff/vscode-counter/issues/96).
-  - In line with the POSIX definition of lines in text files, lines that do not end with a newline (i.e., the last line) are not included in the count.However, the default setting is the same as before to avoid confusion.
+  - In line with the POSIX definition of lines in text files, lines that do not end with a newline (i.e., the last line) are not included in the count.
 - Enable the real-time counter at start-up.
   - However, it should not be resident.
 

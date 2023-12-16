@@ -119,9 +119,8 @@ class CodeCounterController {
         this.disposable = vscode.Disposable.from(...subscriptions);
 
         currentWorkspaceFolder().then((workFolder) => {
-            vscode.workspace.fs.stat(buildUri(workFolder.uri, this.conf.outputDirectory, REALTIME_COUNTER_FILE)).then(st => {
-                this.toggleVisible();
-            });
+            vscode.workspace.fs.stat(buildUri(workFolder.uri, this.conf.outputDirectory, REALTIME_COUNTER_FILE))
+                .then(() => this.toggleVisible(), log);
         });
     }
     dispose() {
@@ -139,22 +138,16 @@ class CodeCounterController {
     //     // vscode.workspace.workspaceFolders?.forEach((f) => log(` [${f.index}] ${f.name} : ${f.uri}`));
     // }
     private onDidChangeActiveTextEditor(e: vscode.TextEditor | undefined) {
-        if (this.codeCounter_) {
-            // log(`onDidChangeActiveTextEditor(${!e ? 'undefined' : e.document.uri})`);
-            this.countLinesInEditor(e);
-        }
+        // log(`onDidChangeActiveTextEditor(${e?.document.uri})`);
+        this.countLinesInEditor(e);
     }
     private onDidChangeTextEditorSelection(e: vscode.TextEditorSelectionChangeEvent) {
-        if (this.codeCounter_) {
-            // log(`onDidChangeTextEditorSelection(${e.selections.length}selections, ${e.selections[0].isEmpty} )`, e.selections[0]);
-            this.countLinesInEditor(e.textEditor);
-        }
+        // log(`onDidChangeTextEditorSelection(${e.selections.length}selections, ${e.selections[0].isEmpty} )`, e.selections[0]);
+        this.countLinesInEditor(e.textEditor);
     }
     private onDidChangeTextDocument(e: vscode.TextDocumentChangeEvent) {
-        if (this.codeCounter_) {
-            // log(`onDidChangeTextDocument(${e.document.uri})`);
-            this.countLinesOfFile(e.document);
-        }
+        // log(`onDidChangeTextDocument(${e.document.uri})`);
+        this.countLinesOfFile(e.document);
     }
     private onDidChangeConfiguration() {
         // log(`onDidChangeConfiguration()`);
@@ -277,44 +270,28 @@ class CodeCounterController {
         }
     }
     private async countLinesInEditor(editor: vscode.TextEditor | undefined) {
-        const doc = editor?.document;
-        if (!editor || !doc) {
-            this.showStatusBar();
-        } else if (editor.selection.isEmpty) {
-            await this.countLinesOfFile(doc);
-        } else {
-            const c = await this.getCodeCounter();
-            const lineCounter = c.getCounter(doc.uri.fsPath, doc.languageId);
-            if (lineCounter) {
-                const result = editor.selections
-                    .map(s => lineCounter.count(doc.getText(s), this.conf.includeIncompleteLine))
-                    .reduce((prev, cur) => prev.add(cur), new Count());
-                this.showStatusBar(`Selected Code: ${result.code} Comment: ${result.comment} Blank: ${result.blank}`);
-            } else {
-                this.showStatusBar();
-            }
-        }
+        return this.countLinesOfFile(editor?.document, editor?.selections);
     }
-    private async countLinesOfFile(doc: vscode.TextDocument | undefined) {
-        if (!doc) {
-            this.showStatusBar();
-        } else {
-            const c = await this.getCodeCounter();
-            const lineCounter = c.getCounter(doc.uri.fsPath, doc.languageId);
-            if (lineCounter) {
+    private async countLinesOfFile(doc: vscode.TextDocument | undefined, selections?: readonly vscode.Selection[]) {
+        const c = await this.getCodeCounter();
+        const lineCounter = doc ? c.getCounter(doc.uri.fsPath, doc.languageId) : undefined;
+        if (!this.statusBarItem) return;
+        let text: string | undefined;
+        if (doc && lineCounter) {
+            if (!selections || selections.length <= 0 || selections[0].isEmpty) {
                 const result = lineCounter?.count(doc.getText(), this.conf.includeIncompleteLine);
-                this.showStatusBar(`Code: ${result.code} Comment: ${result.comment} Blank: ${result.blank}`);
+                text = `Code: ${result.code} Comment: ${result.comment} Blank: ${result.blank}`;
             } else {
-                this.showStatusBar();
+                const result = selections
+                    .map(s => lineCounter.count(doc.getText(s), true))
+                    .reduce((prev, cur) => prev.add(cur), new Count());
+                text = `Selected Code: ${result.code} Comment: ${result.comment} Blank: ${result.blank}`;
             }
         }
+        this.statusBarItem.show();
+        this.statusBarItem.text = text ?? `${EXTENSION_NAME}: Unsupported`;
     }
-    private showStatusBar(text?: string) {
-        if (this.statusBarItem) {
-            this.statusBarItem.show();
-            this.statusBarItem.text = text ?? `${EXTENSION_NAME}:Unsupported`;
-        }
-    }
+
     private toOutputChannel(text: string) {
         if (!this.outputChannel) {
             this.outputChannel = vscode.window.createOutputChannel(EXTENSION_NAME);
@@ -390,11 +367,18 @@ const countLines = (lineCounterTable: LineCounterTable, fileUris: vscode.Uri[], 
 }
 
 type VscodeLanguage = {
-    id: string
-    aliases?: string[]
-    filenames?: string[]
-    extensions?: string[]
-    configuration?: string
+    id: string;
+    aliases?: string[];
+    filenames?: string[];
+    extensions?: string[];
+    configuration?: string;
+};
+type VscodeLanguageConfiguration = Omit<vscode.LanguageConfiguration, 'autoClosingPairs'> & {
+    autoClosingPairs?: ({
+		open?: string;
+		close?: string;
+		notIn?: string[];
+    } | vscode.CharacterPair)[];
 };
 
 const append = (langs: Map<string, LanguageConf>, id: string, value: Partial<LanguageConf>) => {
@@ -405,15 +389,17 @@ const append = (langs: Map<string, LanguageConf>, id: string, value: Partial<Lan
             extensions: [],
             lineComments: [],
             blockComments: [],
-            blockStrings: []
+            blockStrings: [],
+            lineStrings: [],
         }
     });
-    value.aliases?.forEach(v => langExt.aliases.push(v));
-    value.filenames?.forEach(v => langExt.filenames.push(v));
-    value.extensions?.forEach(v => langExt.extensions.push(v));
-    value.lineComments?.forEach(v => langExt.lineComments.push(v));
-    value.blockComments?.forEach(v => langExt.blockComments.push(v));
-    value.blockStrings?.forEach(v => langExt.blockStrings.push(v));
+    langExt.aliases.push(...(value.aliases ?? []));
+    langExt.filenames.push(...(value.filenames ?? []));
+    langExt.extensions.push(...(value.extensions ?? []));
+    langExt.lineComments.push(...(value.lineComments ?? []));
+    langExt.blockComments.push(...(value.blockComments ?? []));
+    langExt.blockStrings.push(...(value.blockStrings ?? []));
+    langExt.lineStrings.push(...(value.lineStrings ?? []));
     return langExt;           
 }
 
@@ -433,7 +419,7 @@ const collectLanguageConfigurations = (langs: Map<string, LanguageConf>): Promis
                             const langExt = append(langs, l.id, l);
                             if (l.configuration) {
                                 const confUrl = vscode.Uri.file(path.join(ex.extensionPath, l.configuration));
-                                const langConf = await readJsonFile<vscode.LanguageConfiguration>(confUrl, undefined, {});
+                                const langConf = await readJsonFile<VscodeLanguageConfiguration>(confUrl, undefined, {});
                                 // log(`"${confUrl.fsPath}" :${l.id}\n aliases:${l.aliases}\n extensions:${l.extensions}\n filenames:${l.filenames}`, l);
                                 if (langConf.comments) {
                                     if (langConf.comments.lineComment) {
@@ -442,6 +428,13 @@ const collectLanguageConfigurations = (langs: Map<string, LanguageConf>): Promis
                                     if (langConf.comments.blockComment && langConf.comments.blockComment.length >= 2) {
                                         langExt.blockComments.push(langConf.comments.blockComment);
                                     }
+                                }
+                                if (langConf.autoClosingPairs) {
+                                    const maybeString = langConf.autoClosingPairs
+                                        .map(v => Array.isArray(v) ? v : [v.open, v.close])
+                                        .filter((v): v is [string, string] => v && typeof v[0] === 'string' && typeof v[1] === 'string' && !'[{('.includes(v[0]));
+                                    // log(`${l.id}`, langConf.autoClosingPairs, maybeString);
+                                    langExt.lineStrings.push(...maybeString);
                                 }
                             }
                         } catch (reason: any) {
