@@ -6,7 +6,7 @@ import * as path from 'path';
 import { Count } from './LineCounter';
 import { LanguageConf, LineCounterTable } from './LineCounterTable';
 import Gitignore from './Gitignore';
-import { buildUri, createTextDecoder, currentWorkspaceFolder, dirUri, makeDirectories, parseUriOrFile, readJsonFile, readUtf8Files, showTextPreview, writeTextFile } from './vscode-utils';
+import { buildUri, createTextDecoder, currentWorkspaceFolder, dirUri, makeDirectories, readJsonFile, readUtf8Files, showTextPreview, writeTextFile } from './vscode-utils';
 import { internalDefinitions } from './internalDefinitions';
 
 const EXTENSION_ID = 'uctakeoff.vscode-counter';
@@ -119,10 +119,9 @@ class CodeCounterController {
         // create a combined disposable from both event subscriptions
         this.disposable = vscode.Disposable.from(...subscriptions);
 
-        currentWorkspaceFolder().then((workFolder) => {
-            vscode.workspace.fs.stat(buildUri(workFolder.uri, this.conf.outputDirectory, REALTIME_COUNTER_FILE))
-                .then(() => this.toggleVisible(), log);
-        });
+        currentWorkspaceFolder()
+        .then((workFolder) => vscode.workspace.fs.stat(buildUri(workFolder.uri, this.conf.outputDirectory, REALTIME_COUNTER_FILE)))
+        .then(() => this.toggleVisible(), log);
     }
     dispose() {
         this.statusBarItem?.dispose();
@@ -259,9 +258,9 @@ class CodeCounterController {
                 .filter(d => ((d[1] & vscode.FileType.Directory) != 0) && regex.test(d[0]))
                 .map(d => d[0])
                 .sort()
-                .map(d => buildUri(outputDir, d));
+                .map(d => vscode.Uri.joinPath(outputDir, d));
 
-            const outSubdir = buildUri(outputDir, toLocalDateString(date, ['-', '_', '-']));
+            const outSubdir = vscode.Uri.joinPath(outputDir, toLocalDateString(date, ['-', '_', '-']));
             await outputResults(date, targetUri, results, outSubdir, histories[histories.length - 1], this.conf);
 
             if (histories.length >= this.conf.history) {
@@ -423,7 +422,7 @@ const collectLanguageConfigurations = (langs: Map<string, LanguageConf>): Promis
                             const langExt = append(langs, l.id, l);
                             if (l.configuration) {
                                 const confUrl = vscode.Uri.file(path.join(ex.extensionPath, l.configuration));
-                                const langConf = await readJsonFile<VscodeLanguageConfiguration>(confUrl, undefined, {});
+                                const langConf = await readJsonFile<VscodeLanguageConfiguration>(confUrl, {});
                                 // log(`"${confUrl.fsPath}" :${l.id}\n aliases:${l.aliases}\n extensions:${l.extensions}\n filenames:${l.filenames}`, l);
                                 if (langConf.comments) {
                                     if (langConf.comments.lineComment) {
@@ -470,7 +469,7 @@ const saveLanguageConfigurations = async (langs: { [key: string]: LanguageConf }
         }
         case "use languageConfUri":{
             const workFolder = await currentWorkspaceFolder();
-            await writeTextFile(parseUriOrFile(conf.languageConfUri, workFolder.uri), JSON.stringify(langs), {recursive: true});
+            await writeTextFile(buildUri(workFolder.uri, conf.languageConfUri), JSON.stringify(langs), {recursive: true});
             break;
         }
     default: break;
@@ -486,10 +485,10 @@ const loadLanguageConfigurations = async (conf: Config): Promise<{ [key: string]
             case "output directory":
                 const workFolder = await currentWorkspaceFolder();
                 const outputDir = buildUri(workFolder.uri, conf.outputDirectory);
-                return await readJsonFile<{ [key: string]: Partial<LanguageConf> }>(outputDir, 'languages.json', {});
+                return await readJsonFile<{ [key: string]: Partial<LanguageConf> }>(vscode.Uri.joinPath(outputDir, 'languages.json'), {});
             case "use languageConfUri":{
                 const workFolder = await currentWorkspaceFolder();
-                return await readJsonFile<{ [key: string]: Partial<LanguageConf> }>(parseUriOrFile(conf.languageConfUri, workFolder.uri), undefined, {});
+                return await readJsonFile<{ [key: string]: Partial<LanguageConf> }>(buildUri(workFolder.uri, conf.languageConfUri), {});
             }
             default: break;
         }
@@ -509,7 +508,7 @@ const previewFiles = new Map<string, string>([
 ]);
 const outputResults = async (date: Date, targetDirUri: vscode.Uri, results: Result[], outputDir: vscode.Uri, prevOutputDir: vscode.Uri | undefined, conf: Config) => {
     await makeDirectories(outputDir);
-    writeTextFile(buildUri(outputDir, `results.json`), resultsToJson(results));
+    writeTextFile(vscode.Uri.joinPath(outputDir, `results.json`), resultsToJson(results));
 
     const resultTable = new ResultFormatter(targetDirUri, results, conf);
     log(`OutputDir : ${outputDir}, count ${results.length} files`);
@@ -517,7 +516,7 @@ const outputResults = async (date: Date, targetDirUri: vscode.Uri, results: Resu
     const diffs: Result[] = [];
     if (prevOutputDir) {
         try {
-            const prevResults = await readJsonFile<{ [uri: string]: Count & { language: string } }>(prevOutputDir, 'results.json', {});
+            const prevResults = await readJsonFile<{ [uri: string]: Count & { language: string } }>(vscode.Uri.joinPath(prevOutputDir, 'results.json'), {});
             log(`Previous OutputDir : ${prevOutputDir}, count ${Object.keys(prevResults).length} files`);
             results.forEach(r => {
                 const p = prevResults[r.uri.toString()];
@@ -542,12 +541,12 @@ const outputResults = async (date: Date, targetDirUri: vscode.Uri, results: Resu
     const diffTable = new ResultFormatter(targetDirUri, diffs, conf);
 
     if (conf.outputAsText) {
-        await writeTextFile(buildUri(outputDir, 'results.txt'), resultTable.toTextLines(date));
-        await writeTextFile(buildUri(outputDir, 'diff.txt'), diffTable.toTextLines(date));
+        await writeTextFile(vscode.Uri.joinPath(outputDir, 'results.txt'), resultTable.toTextLines(date));
+        await writeTextFile(vscode.Uri.joinPath(outputDir, 'diff.txt'), diffTable.toTextLines(date));
     }
     if (conf.outputAsCSV) {
-        await writeTextFile(buildUri(outputDir, 'results.csv'), resultTable.toCSVLines());
-        await writeTextFile(buildUri(outputDir, 'diff.csv'), diffTable.toCSVLines());
+        await writeTextFile(vscode.Uri.joinPath(outputDir, 'results.csv'), resultTable.toCSVLines());
+        await writeTextFile(vscode.Uri.joinPath(outputDir, 'diff.csv'), diffTable.toCSVLines());
     }
     if (conf.outputAsMarkdown) {
         const mds = [
@@ -557,12 +556,12 @@ const outputResults = async (date: Date, targetDirUri: vscode.Uri, results: Resu
             { title: 'Diff Details', path: 'diff-details.md', table: diffTable, detail: true },
         ];
         await Promise.all(mds.map(({ title, path, table, detail }, index) => {
-            return writeTextFile(buildUri(outputDir, path), table.toMarkdown(date, title, detail, mds.map((f, i) => [f.title, i === index ? undefined : f.path])));
+            return writeTextFile(vscode.Uri.joinPath(outputDir, path), table.toMarkdown(date, title, detail, mds.map((f, i) => [f.title, i === index ? undefined : f.path])));
         }));
     }
     const previewFile = previewFiles.get(conf.outputPreviewType);
     if (previewFile) {
-        showTextPreview(buildUri(outputDir, previewFile));
+        showTextPreview(vscode.Uri.joinPath(outputDir, previewFile));
     }
 }
 

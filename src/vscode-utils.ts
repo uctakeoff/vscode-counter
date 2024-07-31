@@ -16,15 +16,17 @@ export const currentWorkspaceFolder = async () => {
     throw Error('workspace not open.');
 }
 
-export const buildUri = (uri: vscode.Uri, ...names: string[]) => uri.with({ path: `${uri.path}/${names.join('/')}` });
-export const dirUri = (uri: vscode.Uri) => uri.with({ path: path.dirname(uri.path) });
-export const parseUriOrFile = (uriOrFileath: string, baseUri?: vscode.Uri) => {
-    const u = vscode.Uri.parse(uriOrFileath);
-    // log(uriOrFileath, u.toString(), path.isAbsolute(uriOrFileath), baseUri?.toString(), buildUri(baseUri??u, uriOrFileath).fsPath, (!baseUri || path.isAbsolute(uriOrFileath)));
-    return uriOrFileath.startsWith(u.scheme + ':/') ? u 
-        : (!baseUri || path.isAbsolute(uriOrFileath)) ? vscode.Uri.file(uriOrFileath)
-        : buildUri(baseUri, uriOrFileath);
+export const buildUri = (uri: vscode.Uri, ...uriOrPaths: string[]) => {
+    return uriOrPaths.reduce((baseUri, uriOrPath) => {
+        const u = vscode.Uri.parse(uriOrPath);
+        // log('buildUri', uriOrPath, u.toString(), path.isAbsolute(uriOrPath), baseUri?.toString(), vscode.Uri.joinPath(baseUri??u, uriOrPath).fsPath, (!baseUri || path.isAbsolute(uriOrPath)));
+        return uriOrPath.startsWith(u.scheme + ':/') ? u 
+            : (!baseUri || path.isAbsolute(uriOrPath)) ? vscode.Uri.file(uriOrPath)
+            : vscode.Uri.joinPath(baseUri, uriOrPath);
+    }, uri);
 }
+export const dirUri = (uri: vscode.Uri) => uri.with({ path: path.dirname(uri.path) });
+
 const decoderU8 = new TextDecoder('utf8');
 const encoderU8 = new TextEncoder();
 
@@ -80,15 +82,14 @@ const vscodeEncodingTable = new Map<string, string>([
 
 export const createTextDecoder = (vscodeTextEncoding: string) => new TextDecoder(vscodeEncodingTable.get(vscodeTextEncoding) || vscodeTextEncoding);
 
-export const readUtf8File = async (baseUri: vscode.Uri, path?: string): Promise<{ uri: vscode.Uri, data: string, error?: any }> => {
-    const uri = path ? buildUri(baseUri, path) : baseUri;
+export const readUtf8File = async (uri: vscode.Uri): Promise<{ uri: vscode.Uri, data: string, error?: any }> => {
     try {
         const bin = await vscode.workspace.fs.readFile(uri);
         // log(`read ${uri} : ${bin.length}B`);
         const data = decoderU8.decode(bin);
         return {uri, data};
     } catch (error: any) {
-        log(`readUtf8File(${baseUri}, ${path}) failed. : ${error}`);
+        log(`readUtf8File(${uri}) failed. : ${error}`);
         return { uri, data: '', error };
     }
 }
@@ -111,14 +112,14 @@ export const checkJsonType = <T extends boolean | number | string | Array<any> |
     return defaultValue;
 }
 
-export const readJsonFile = async <T extends boolean | number | string | Array<any> | { [key: string]: any }>(baseUri: vscode.Uri, path: string | undefined, defaultValue: T): Promise<T> => {
+export const readJsonFile = async <T extends boolean | number | string | Array<any> | { [key: string]: any }>(uri: vscode.Uri, defaultValue: T): Promise<T> => {
     try {
-        const text = await readUtf8File(baseUri, path);
+        const text = await readUtf8File(uri);
         if (text.error) return defaultValue;
         const json = JSONC.parse(text.data);
         return checkJsonType(json, defaultValue);
     } catch (e: any) {
-        log(`readJsonFile(${baseUri}, ${path}) failed. : ${e}`);
+        log(`readJsonFile(${uri}) failed. : ${e}`);
     }
     return defaultValue;
 }
