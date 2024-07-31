@@ -82,6 +82,7 @@ const loadConfig = () => {
         associations: Object.entries(confFiles.get<{ [key: string]: string }>('associations', {})),
 
         maxOpenFiles: conf.get('maxOpenFiles', 500),
+        maxFindFiles: conf.get('maxFindFiles', 1_000_000),
         ignoreUnsupportedFile: conf.get('ignoreUnsupportedFile', true),
         history: Math.max(1, conf.get('history', 5)),
         languages: conf.get<{ [key: string]: Partial<LanguageConf> }>('languages', {}),
@@ -228,11 +229,14 @@ class CodeCounterController {
             const outputDir = buildUri(workspaceDir, this.conf.outputDirectory);
             log(`include : "${this.conf.include}"`);
             log(`exclude : "${this.conf.exclude}"`);
-            const files = await vscode.workspace.findFiles(`{${this.conf.include}}`, `{${this.conf.exclude},${vscode.workspace.asRelativePath(outputDir)}}`);
+            const files = await vscode.workspace.findFiles(
+                `{${this.conf.include}}`,
+                `{${this.conf.exclude},${vscode.workspace.asRelativePath(outputDir)}}`,
+                this.conf.maxFindFiles);
             let targetFiles = files.filter(uri => !path.relative(targetUri.path, uri.path).startsWith(".."));
             if (this.conf.useGitignore) {
                 log(`target : ${targetFiles.length} files -> use .gitignore`);
-                const gitignores = await loadGitIgnore();
+                const gitignores = await loadGitIgnore(this.conf.maxFindFiles);
                 targetFiles = targetFiles.filter(p => gitignores.excludes(p.fsPath));
             }
 
@@ -302,8 +306,8 @@ class CodeCounterController {
 }
 
 
-const loadGitIgnore = async () => {
-    const gitignoreFiles = await vscode.workspace.findFiles('**/.gitignore', '');
+const loadGitIgnore = async (maxFindFiles?: number) => {
+    const gitignoreFiles = await vscode.workspace.findFiles('**/.gitignore', '', maxFindFiles);
     gitignoreFiles.forEach(f => log(`use gitignore : ${f}`));
     const values = await readUtf8Files(gitignoreFiles.sort());
     return new Gitignore('').merge(...values.map(p => new Gitignore(p.data, dirUri(p.uri).fsPath)));

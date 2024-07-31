@@ -91,6 +91,11 @@
           "type": "boolean",
           "default": true
         },
+        "VSCodeCounter.maxFindFiles": {
+          "description": "%configuration.maxFindFiles.description%",
+          "type": "number",
+          "default": 1000000
+        },
         "VSCodeCounter.maxOpenFiles": {
           "description": "%configuration.maxOpenFiles.description%",
           "type": "number",
