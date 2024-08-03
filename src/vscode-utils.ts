@@ -5,6 +5,25 @@ import { TextDecoder, TextEncoder } from 'util';
 
 const log = (message: string, ...items: any[]) => console.log(`${new Date().toISOString()}   ${message}`, ...items);
 
+export const compileTemplate = (template: string, variables: Record<string, string>) => {
+    // ${xxx} or $$
+    const regexp = /\$\{([^$\{\}]*)\}|(\$\$)/g;
+    const ret: string[] = [];
+    let startIndex = 0;
+    let match;
+    while ((match = regexp.exec(template)) !== null) {
+      const s = template.substring(startIndex, regexp.lastIndex - match[0].length);
+      startIndex = regexp.lastIndex;
+      if (match[1]) {
+          ret.push(s, variables[match[1]]);
+      } else if (match[2]) {
+          ret.push(s, '$');    
+      }
+    }
+    ret.push(template.substring(startIndex));
+    return ret.join('');
+}
+
 export const currentWorkspaceFolder = async () => {
     const folders = vscode.workspace.workspaceFolders ?? [];
     if (folders.length === 1) {
@@ -19,10 +38,10 @@ export const currentWorkspaceFolder = async () => {
 export const buildUri = (uri: vscode.Uri, ...uriOrPaths: string[]) => {
     return uriOrPaths.reduce((baseUri, uriOrPath) => {
         const u = vscode.Uri.parse(uriOrPath);
-        // log('buildUri', uriOrPath, u.toString(), path.isAbsolute(uriOrPath), baseUri?.toString(), vscode.Uri.joinPath(baseUri??u, uriOrPath).fsPath, (!baseUri || path.isAbsolute(uriOrPath)));
-        return uriOrPath.startsWith(u.scheme + ':/') ? u 
-            : (!baseUri || path.isAbsolute(uriOrPath)) ? vscode.Uri.file(uriOrPath)
-            : vscode.Uri.joinPath(baseUri, uriOrPath);
+        // log(`[${baseUri}]+[${uriOrPath}](abs=${path.isAbsolute(uriOrPath)}) parse=[${u}], file=[${vscode.Uri.file(uriOrPath)}]`, u);
+        return path.isAbsolute(uriOrPath) ? vscode.Uri.file(uriOrPath)
+        : (!baseUri || uriOrPath.startsWith(u.scheme + '://')) ? vscode.Uri.file(uriOrPath)
+        : vscode.Uri.joinPath(baseUri, uriOrPath);
     }, uri);
 }
 export const dirUri = (uri: vscode.Uri) => uri.with({ path: path.dirname(uri.path) });
@@ -124,31 +143,6 @@ export const readJsonFile = async <T extends boolean | number | string | Array<a
     return defaultValue;
 }
 
-const makeDirectories_ = (dirpath: vscode.Uri, resolve: () => void, reject: (reason: string) => void) => {
-    // log(`makeDirectories(${dirpath})`);
-    vscode.workspace.fs.stat(dirpath).then((fileStat) => {
-        if ((fileStat.type & vscode.FileType.Directory) != 0) {
-            resolve();
-        } else {
-            reject(`${dirpath} is not directory.`);
-        }
-    }, (reason) => {
-        // log(`vscode.workspace.fs.stat failed: ${reason}`);
-        const curPath = dirpath.path;
-        const parent = path.dirname(curPath);
-        if (parent !== curPath) {
-            makeDirectories_(dirpath.with({ path: parent }), () => {
-                log(`createDirectory ${dirpath}`);
-                vscode.workspace.fs.createDirectory(dirpath).then(resolve, reject);
-            }, reject);
-        } else {
-            reject(reason);
-        }
-    });
-}
-export const makeDirectories = (dirpath: vscode.Uri): Promise<void> => {
-    return new Promise((resolve: () => void, reject: (reason: string) => void) => makeDirectories_(dirpath, resolve, reject));
-}
 export const showTextFile = async (uri: vscode.Uri) => {
     const doc = await vscode.workspace.openTextDocument(uri);
     return await vscode.window.showTextDocument(doc, vscode.ViewColumn.One, true);
@@ -162,9 +156,7 @@ export const showTextPreview = async (uri: vscode.Uri) => {
 }
 export const writeTextFile = async (uri: vscode.Uri, text: string, option?: {recursive?: boolean}) => {
     if (option?.recursive) {
-        await makeDirectories(dirUri(uri));
+        await vscode.workspace.fs.createDirectory(dirUri(uri));
     }
-    // log(`writeTextFile : ${uri} ${text.length}B`);
     await vscode.workspace.fs.writeFile(uri, encoderU8.encode(text));
-    return uri;
 }

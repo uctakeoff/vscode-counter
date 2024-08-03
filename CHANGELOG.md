@@ -7,6 +7,10 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 * workspace counter in status bar.
 
+## [3.5.0]
+### Changed
+- Support: Configure "outputDirectory" to outside of workspace [#101](https://github.com/uctakeoff/vscode-counter/issues/101)
+
 ## [3.4.0]
 ### Fixed
 - Defects caused by comment keywords present in the string. [#88](https://github.com/uctakeoff/vscode-counter/issues/88)

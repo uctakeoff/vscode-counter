@@ -6,13 +6,12 @@ import * as path from 'path';
 import { Count } from './LineCounter';
 import { LanguageConf, LineCounterTable } from './LineCounterTable';
 import Gitignore from './Gitignore';
-import { buildUri, createTextDecoder, currentWorkspaceFolder, dirUri, makeDirectories, readJsonFile, readUtf8Files, showTextPreview, writeTextFile } from './vscode-utils';
+import { buildUri, compileTemplate, createTextDecoder, currentWorkspaceFolder, dirUri, readJsonFile, readUtf8Files, showTextPreview, writeTextFile } from './vscode-utils';
 import { internalDefinitions } from './internalDefinitions';
 
 const EXTENSION_ID = 'uctakeoff.vscode-counter';
 const EXTENSION_NAME = 'VSCodeCounter';
 const CONFIGURATION_SECTION = 'VSCodeCounter';
-const REALTIME_COUNTER_FILE = '.VSCodeCounterCountRealtime';
 const toZeroPadString = (num: number, fig: number) => num.toString().padStart(fig, '0');
 const toLocalDateString = (date: Date, delims: [string, string, string] = ['-', ' ', ':']) => {
     return `${date.getFullYear()}${delims[0]}${toZeroPadString(date.getMonth() + 1, 2)}${delims[0]}${toZeroPadString(date.getDate(), 2)}${delims[1]}`
@@ -48,7 +47,7 @@ export const activate = (context: vscode.ExtensionContext) => {
         codeCountController,
         registerCommand('countInWorkspace', () => codeCountController.countLinesInWorkSpace()),
         registerCommand('countInDirectory', (targetDir: vscode.Uri | undefined) => codeCountController.countLinesInDirectory(targetDir)),
-        registerCommand('countInFile', async () => codeCountController.toggleVisible()),
+        registerCommand('countInFile', () => codeCountController.toggleVisibleRealtimeCounter()),
         registerCommand('saveLanguageConfigurations', () => codeCountController.saveLanguageConfigurations()),
         registerCommand('outputAvailableLanguages', () => codeCountController.outputAvailableLanguages())
     );
@@ -99,12 +98,46 @@ const loadConfig = () => {
 }
 type Config = ReturnType<typeof loadConfig>;
 
+const pathBasedName = (uri: vscode.Uri) => {
+    const path = (uri.scheme === 'file') ? uri.fsPath : uri.toString();
+    // return path.replace(/[^\w\-~\.]+/g, '-');
+    return path.replace(/[:\/\\?#\[\]\@]+/g, '-');
+}
 class CodeCounterController {
     private codeCounter_: LineCounterTable | null = null;
     private statusBarItem: vscode.StatusBarItem | null = null;
     private outputChannel: vscode.OutputChannel | null = null;
     private disposable: vscode.Disposable;
     private conf: Config;
+    private async getWorkDirs() {
+        const workDir = await currentWorkspaceFolder();
+        const v = {
+            workspaceName: workDir.name,
+            workspacePath: pathBasedName(workDir.uri),
+            workspaceIndex: workDir.index.toString(),
+        };
+        const dir = compileTemplate(this.conf.outputDirectory, v);
+        const outputDir = buildUri(workDir.uri, dir);
+        log(`OutDir: "${this.conf.outputDirectory}"->"${dir}"`, v);
+        return {workDir, outputDir};
+    }
+    private async getLangageConfUri() {
+        const { workDir, outputDir } = await this.getWorkDirs();
+        switch (this.conf.saveLocation) {
+        case "output directory":
+            return vscode.Uri.joinPath(outputDir, 'languages.json');
+        case "use languageConfUri":
+            return buildUri(workDir.uri, this.conf.languageConfUri);
+        case "global settings":
+        case "workspace settings":
+        default: break;
+        }
+        return undefined;
+    }
+    private async getRealtimeCounterStateFileUri() {
+        const { outputDir } = await this.getWorkDirs();
+        return vscode.Uri.joinPath(outputDir, '.VSCodeCounterCountRealtime');
+    }
 
     constructor() {
         // subscribe to selection change and editor activation events
@@ -119,9 +152,9 @@ class CodeCounterController {
         // create a combined disposable from both event subscriptions
         this.disposable = vscode.Disposable.from(...subscriptions);
 
-        currentWorkspaceFolder()
-        .then((workFolder) => vscode.workspace.fs.stat(buildUri(workFolder.uri, this.conf.outputDirectory, REALTIME_COUNTER_FILE)))
-        .then(() => this.toggleVisible(), log);
+        this.getRealtimeCounterStateFileUri()
+        .then((uri) => vscode.workspace.fs.stat(uri))
+        .then(() => this.toggleVisibleRealtimeCounter(), log);
     }
     dispose() {
         this.statusBarItem?.dispose();
@@ -155,19 +188,16 @@ class CodeCounterController {
         this.conf = loadConfig();
         this.countLinesInEditor(vscode.window.activeTextEditor);
     }
-    public toggleVisible() {
+    public async toggleVisibleRealtimeCounter() {
+        const uri = await this.getRealtimeCounterStateFileUri();
         if (!this.statusBarItem) {
             this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100000);
             this.countLinesInEditor(vscode.window.activeTextEditor);
-            currentWorkspaceFolder().then((workFolder) => {
-                writeTextFile(buildUri(workFolder.uri, this.conf.outputDirectory, REALTIME_COUNTER_FILE), '', {recursive: true});
-            });
+            await writeTextFile(uri, '', {recursive: true});
         } else {
             this.statusBarItem.dispose();
             this.statusBarItem = null;
-            currentWorkspaceFolder().then((workFolder) => {
-                vscode.workspace.fs.delete(buildUri(workFolder.uri, this.conf.outputDirectory, REALTIME_COUNTER_FILE));
-            });
+            await vscode.workspace.fs.delete(uri);
         }
     }
 
@@ -176,8 +206,8 @@ class CodeCounterController {
             return this.codeCounter_
         }
         const langs = new Map<string, LanguageConf>();
-        Object.entries(internalDefinitions).forEach(v => append(langs, v[0], v[1]));
-        Object.entries(await loadLanguageConfigurations(this.conf)).forEach(v => append(langs, v[0], v[1]));
+        appendAll(langs, internalDefinitions);
+        appendAll(langs, await this.loadLanguageConfigurations());
         
         log(`load Language Settings = ${langs.size}`);
         await collectLanguageConfigurations(langs);
@@ -185,9 +215,36 @@ class CodeCounterController {
         this.codeCounter_ = new LineCounterTable(langs, this.conf.associations);
         return this.codeCounter_;
     }
+    public async loadLanguageConfigurations(): Promise<{ [key: string]: Partial<LanguageConf> }> {
+        try {
+            switch (this.conf.saveLocation) {
+                case "global settings":
+                case "workspace settings":
+                    return this.conf.languages;
+                default:
+                    const uri = await this.getLangageConfUri();
+                    log(`Language Settings File: ${uri}`);
+                    if (uri) return await readJsonFile<{ [key: string]: Partial<LanguageConf> }>(uri, {});
+            }
+        } catch (e: any) {
+            showError(`loadLanguageConfigurations failed. ${e.message}`);
+        }
+        return {};
+    }
+    
     public async saveLanguageConfigurations() {
         const c = await this.getCodeCounter();
-        saveLanguageConfigurations(mapToObject(c.entries()), this.conf);
+        const langs = mapToObject(c.entries());
+        switch (this.conf.saveLocation) {
+            case "global settings":
+                return this.conf.configuration.update('languages', langs, vscode.ConfigurationTarget.Global);
+            case "workspace settings":
+                return this.conf.configuration.update('languages', langs, vscode.ConfigurationTarget.Workspace);
+            default:
+                const uri = await this.getLangageConfUri();
+                log(`Language Settings File: ${uri}`);
+                if (uri) return writeTextFile(uri, JSON.stringify(langs), {recursive: true});
+        }
     }
 
     public async outputAvailableLanguages() {
@@ -199,33 +256,32 @@ class CodeCounterController {
     }
 
     public async countLinesInDirectory(targetDir: vscode.Uri | undefined) {
-        const folder = await currentWorkspaceFolder();
+        const { workDir, outputDir } = await this.getWorkDirs();
         if (targetDir) {
-            await this.countLinesInDirectory_(targetDir, folder.uri);
+            await this.countLinesInDirectory_(targetDir, outputDir);
         } else {
             const option = {
-                value: folder.uri.toString(true),
+                value: workDir.uri.toString(true),
                 placeHolder: "Input Directory Path",
                 prompt: "Input Directory Path. "
             };
             const uri = await vscode.window.showInputBox(option);
             if (uri) {
-                await this.countLinesInDirectory_(vscode.Uri.parse(uri), folder.uri);
+                await this.countLinesInDirectory_(vscode.Uri.parse(uri), outputDir);
             }
         }
     }
     public async countLinesInWorkSpace() {
-        const folder = await currentWorkspaceFolder();
-        await this.countLinesInDirectory_(folder.uri, folder.uri);
+        const { workDir, outputDir } = await this.getWorkDirs();
+        await this.countLinesInDirectory_(workDir.uri, outputDir);
     }
-    private async countLinesInDirectory_(targetUri: vscode.Uri, workspaceDir: vscode.Uri) {
+    private async countLinesInDirectory_(targetUri: vscode.Uri, outputDir: vscode.Uri) {
         const date = new Date();
         const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
         try {
             statusBar.show();
             statusBar.text = `VSCodeCounter: Preparing...`;
 
-            const outputDir = buildUri(workspaceDir, this.conf.outputDirectory);
             log(`include : "${this.conf.include}"`);
             log(`exclude : "${this.conf.exclude}"`);
             const files = await vscode.workspace.findFiles(
@@ -252,7 +308,7 @@ class CodeCounterController {
             }
             statusBar.text = `VSCodeCounter: Totaling...`;
 
-            await makeDirectories(outputDir);
+            await vscode.workspace.fs.createDirectory(outputDir);
             const regex = /^\d\d\d\d-\d\d-\d\d\_\d\d-\d\d-\d\d$/;
             const histories = (await vscode.workspace.fs.readDirectory(outputDir))
                 .filter(d => ((d[1] & vscode.FileType.Directory) != 0) && regex.test(d[0]))
@@ -405,6 +461,9 @@ const append = (langs: Map<string, LanguageConf>, id: string, value: Partial<Lan
     langExt.lineStrings.push(...(value.lineStrings ?? []));
     return langExt;           
 }
+const appendAll = (langs: Map<string, LanguageConf>, defs: { [id: string]: Partial<LanguageConf> }) => {
+    Object.entries(defs).forEach(v => append(langs, v[0], v[1]));
+}
 
 const collectLanguageConfigurations = (langs: Map<string, LanguageConf>): Promise<Map<string, LanguageConf>> => {
     return new Promise((resolve: (values: Map<string, LanguageConf>) => void, reject: (reason: any) => void) => {
@@ -454,49 +513,6 @@ const collectLanguageConfigurations = (langs: Map<string, LanguageConf>): Promis
     });
 }
 
-const saveLanguageConfigurations = async (langs: { [key: string]: LanguageConf }, conf: Config) => {
-    switch (conf.saveLocation) {
-        case "global settings":
-            conf.configuration.update('languages', langs, vscode.ConfigurationTarget.Global);
-            break;
-        case "workspace settings":
-            conf.configuration.update('languages', langs, vscode.ConfigurationTarget.Workspace);
-            break;
-        case "output directory":{
-            const workFolder = await currentWorkspaceFolder();
-            await writeTextFile(buildUri(workFolder.uri, conf.outputDirectory, 'languages.json'), JSON.stringify(langs), {recursive: true});
-            break;
-        }
-        case "use languageConfUri":{
-            const workFolder = await currentWorkspaceFolder();
-            await writeTextFile(buildUri(workFolder.uri, conf.languageConfUri), JSON.stringify(langs), {recursive: true});
-            break;
-        }
-    default: break;
-    }
-}
-
-const loadLanguageConfigurations = async (conf: Config): Promise<{ [key: string]: Partial<LanguageConf> }> => {
-    try {
-        switch (conf.saveLocation) {
-            case "global settings":
-            case "workspace settings":
-                return conf.languages;
-            case "output directory":
-                const workFolder = await currentWorkspaceFolder();
-                const outputDir = buildUri(workFolder.uri, conf.outputDirectory);
-                return await readJsonFile<{ [key: string]: Partial<LanguageConf> }>(vscode.Uri.joinPath(outputDir, 'languages.json'), {});
-            case "use languageConfUri":{
-                const workFolder = await currentWorkspaceFolder();
-                return await readJsonFile<{ [key: string]: Partial<LanguageConf> }>(buildUri(workFolder.uri, conf.languageConfUri), {});
-            }
-            default: break;
-        }
-    } catch (e: any) {
-        showError(`loadLanguageConfigurations failed. ${e.message}`);
-    }
-    return {};
-}
 
 const previewFiles = new Map<string, string>([
     ['text', 'results.txt'],
@@ -507,7 +523,7 @@ const previewFiles = new Map<string, string>([
     ['diff-markdown', 'diff.md'],
 ]);
 const outputResults = async (date: Date, targetDirUri: vscode.Uri, results: Result[], outputDir: vscode.Uri, prevOutputDir: vscode.Uri | undefined, conf: Config) => {
-    await makeDirectories(outputDir);
+    await vscode.workspace.fs.createDirectory(outputDir);
     writeTextFile(vscode.Uri.joinPath(outputDir, `results.json`), resultsToJson(results));
 
     const resultTable = new ResultFormatter(targetDirUri, results, conf);
