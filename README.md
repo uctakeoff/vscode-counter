@@ -74,6 +74,7 @@ However, you must carry the stored information to the remote environment by your
 
 * `VSCodeCounter.useGitignore`: Whether to use '.gitignore' files for excluding files.
 * `VSCodeCounter.useFilesExclude`: Whether to use setting 'files.exclude' for excluding files.
+* `VSCodeCounter.maxFindFiles`: Maximum number of searchable files.
 * `VSCodeCounter.maxOpenFiles`: Maximum number of files that VSCodeCounter can read simultaneously.
 * `VSCodeCounter.printNumberWithCommas`: Whether to print a number with commas as thousands separators.(except for CSV)
 * `VSCodeCounter.ignoreUnsupportedFile`: Ignore unsupported files.

@@ -5,6 +5,25 @@ import { TextDecoder, TextEncoder } from 'util';
 
 const log = (message: string, ...items: any[]) => console.log(`${new Date().toISOString()}   ${message}`, ...items);
 
+export const compileTemplate = (template: string, variables: Record<string, string>) => {
+    // ${xxx} or $$
+    const regexp = /\$\{([^$\{\}]*)\}|(\$\$)/g;
+    const ret: string[] = [];
+    let startIndex = 0;
+    let match;
+    while ((match = regexp.exec(template)) !== null) {
+      const s = template.substring(startIndex, regexp.lastIndex - match[0].length);
+      startIndex = regexp.lastIndex;
+      if (match[1]) {
+          ret.push(s, variables[match[1]]);
+      } else if (match[2]) {
+          ret.push(s, '$');    
+      }
+    }
+    ret.push(template.substring(startIndex));
+    return ret.join('');
+}
+
 export const currentWorkspaceFolder = async () => {
     const folders = vscode.workspace.workspaceFolders ?? [];
     if (folders.length === 1) {
@@ -16,15 +35,17 @@ export const currentWorkspaceFolder = async () => {
     throw Error('workspace not open.');
 }
 
-export const buildUri = (uri: vscode.Uri, ...names: string[]) => uri.with({ path: `${uri.path}/${names.join('/')}` });
-export const dirUri = (uri: vscode.Uri) => uri.with({ path: path.dirname(uri.path) });
-export const parseUriOrFile = (uriOrFileath: string, baseUri?: vscode.Uri) => {
-    const u = vscode.Uri.parse(uriOrFileath);
-    // log(uriOrFileath, u.toString(), path.isAbsolute(uriOrFileath), baseUri?.toString(), buildUri(baseUri??u, uriOrFileath).fsPath, (!baseUri || path.isAbsolute(uriOrFileath)));
-    return uriOrFileath.startsWith(u.scheme + ':/') ? u 
-        : (!baseUri || path.isAbsolute(uriOrFileath)) ? vscode.Uri.file(uriOrFileath)
-        : buildUri(baseUri, uriOrFileath);
+export const buildUri = (uri: vscode.Uri, ...uriOrPaths: string[]) => {
+    return uriOrPaths.reduce((baseUri, uriOrPath) => {
+        const u = vscode.Uri.parse(uriOrPath);
+        // log(`[${baseUri}]+[${uriOrPath}](abs=${path.isAbsolute(uriOrPath)}) parse=[${u}], file=[${vscode.Uri.file(uriOrPath)}]`, u);
+        return path.isAbsolute(uriOrPath) ? vscode.Uri.file(uriOrPath)
+        : (!baseUri || uriOrPath.startsWith(u.scheme + '://')) ? vscode.Uri.file(uriOrPath)
+        : vscode.Uri.joinPath(baseUri, uriOrPath);
+    }, uri);
 }
+export const dirUri = (uri: vscode.Uri) => uri.with({ path: path.dirname(uri.path) });
+
 const decoderU8 = new TextDecoder('utf8');
 const encoderU8 = new TextEncoder();
 
@@ -80,15 +101,14 @@ const vscodeEncodingTable = new Map<string, string>([
 
 export const createTextDecoder = (vscodeTextEncoding: string) => new TextDecoder(vscodeEncodingTable.get(vscodeTextEncoding) || vscodeTextEncoding);
 
-export const readUtf8File = async (baseUri: vscode.Uri, path?: string): Promise<{ uri: vscode.Uri, data: string, error?: any }> => {
-    const uri = path ? buildUri(baseUri, path) : baseUri;
+export const readUtf8File = async (uri: vscode.Uri): Promise<{ uri: vscode.Uri, data: string, error?: any }> => {
     try {
         const bin = await vscode.workspace.fs.readFile(uri);
         // log(`read ${uri} : ${bin.length}B`);
         const data = decoderU8.decode(bin);
         return {uri, data};
     } catch (error: any) {
-        log(`readUtf8File(${baseUri}, ${path}) failed. : ${error}`);
+        log(`readUtf8File(${uri}) failed. : ${error}`);
         return { uri, data: '', error };
     }
 }
@@ -111,43 +131,18 @@ export const checkJsonType = <T extends boolean | number | string | Array<any> |
     return defaultValue;
 }
 
-export const readJsonFile = async <T extends boolean | number | string | Array<any> | { [key: string]: any }>(baseUri: vscode.Uri, path: string | undefined, defaultValue: T): Promise<T> => {
+export const readJsonFile = async <T extends boolean | number | string | Array<any> | { [key: string]: any }>(uri: vscode.Uri, defaultValue: T): Promise<T> => {
     try {
-        const text = await readUtf8File(baseUri, path);
+        const text = await readUtf8File(uri);
         if (text.error) return defaultValue;
         const json = JSONC.parse(text.data);
         return checkJsonType(json, defaultValue);
     } catch (e: any) {
-        log(`readJsonFile(${baseUri}, ${path}) failed. : ${e}`);
+        log(`readJsonFile(${uri}) failed. : ${e}`);
     }
     return defaultValue;
 }
 
-const makeDirectories_ = (dirpath: vscode.Uri, resolve: () => void, reject: (reason: string) => void) => {
-    // log(`makeDirectories(${dirpath})`);
-    vscode.workspace.fs.stat(dirpath).then((fileStat) => {
-        if ((fileStat.type & vscode.FileType.Directory) != 0) {
-            resolve();
-        } else {
-            reject(`${dirpath} is not directory.`);
-        }
-    }, (reason) => {
-        // log(`vscode.workspace.fs.stat failed: ${reason}`);
-        const curPath = dirpath.path;
-        const parent = path.dirname(curPath);
-        if (parent !== curPath) {
-            makeDirectories_(dirpath.with({ path: parent }), () => {
-                log(`createDirectory ${dirpath}`);
-                vscode.workspace.fs.createDirectory(dirpath).then(resolve, reject);
-            }, reject);
-        } else {
-            reject(reason);
-        }
-    });
-}
-export const makeDirectories = (dirpath: vscode.Uri): Promise<void> => {
-    return new Promise((resolve: () => void, reject: (reason: string) => void) => makeDirectories_(dirpath, resolve, reject));
-}
 export const showTextFile = async (uri: vscode.Uri) => {
     const doc = await vscode.workspace.openTextDocument(uri);
     return await vscode.window.showTextDocument(doc, vscode.ViewColumn.One, true);
@@ -161,9 +156,7 @@ export const showTextPreview = async (uri: vscode.Uri) => {
 }
 export const writeTextFile = async (uri: vscode.Uri, text: string, option?: {recursive?: boolean}) => {
     if (option?.recursive) {
-        await makeDirectories(dirUri(uri));
+        await vscode.workspace.fs.createDirectory(dirUri(uri));
     }
-    // log(`writeTextFile : ${uri} ${text.length}B`);
     await vscode.workspace.fs.writeFile(uri, encoderU8.encode(text));
-    return uri;
 }
