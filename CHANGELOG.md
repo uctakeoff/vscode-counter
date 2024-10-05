@@ -7,6 +7,10 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 * workspace counter in status bar.
 
+## [3.6.0]
+### Changed
+- Ignore the case of file names and extensions. (#105)
+
 ## [3.5.0]
 ### Changed
 - Support: Configure "outputDirectory" to outside of workspace [#101](https://github.com/uctakeoff/vscode-counter/issues/101)
