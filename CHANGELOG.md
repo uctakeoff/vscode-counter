@@ -7,6 +7,10 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 * workspace counter in status bar.
 
+## [3.6.2]
+### Fixed
+- File name with markdown syntax don't display correctly. (#109)
+
 ## [3.6.0]
 ### Changed
 - Ignore the case of file names and extensions. (#105)

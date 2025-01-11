@@ -119,18 +119,18 @@ class CodeCounterController {
         const dir = compileTemplate(this.conf.outputDirectory, v);
         const outputDir = buildUri(workDir.uri, dir);
         log(`OutDir: "${this.conf.outputDirectory}"->"${dir}"`, v);
-        return {workDir, outputDir};
+        return { workDir, outputDir };
     }
     private async getLangageConfUri() {
         const { workDir, outputDir } = await this.getWorkDirs();
         switch (this.conf.saveLocation) {
-        case "output directory":
-            return vscode.Uri.joinPath(outputDir, 'languages.json');
-        case "use languageConfUri":
-            return buildUri(workDir.uri, this.conf.languageConfUri);
-        case "global settings":
-        case "workspace settings":
-        default: break;
+            case "output directory":
+                return vscode.Uri.joinPath(outputDir, 'languages.json');
+            case "use languageConfUri":
+                return buildUri(workDir.uri, this.conf.languageConfUri);
+            case "global settings":
+            case "workspace settings":
+            default: break;
         }
         return undefined;
     }
@@ -153,8 +153,8 @@ class CodeCounterController {
         this.disposable = vscode.Disposable.from(...subscriptions);
 
         this.getRealtimeCounterStateFileUri()
-        .then((uri) => vscode.workspace.fs.stat(uri))
-        .then(() => this.toggleVisibleRealtimeCounter(), log);
+            .then((uri) => vscode.workspace.fs.stat(uri))
+            .then(() => this.toggleVisibleRealtimeCounter(), log);
     }
     dispose() {
         this.statusBarItem?.dispose();
@@ -193,7 +193,7 @@ class CodeCounterController {
         if (!this.statusBarItem) {
             this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100000);
             this.countLinesInEditor(vscode.window.activeTextEditor);
-            await writeTextFile(uri, '', {recursive: true});
+            await writeTextFile(uri, '', { recursive: true });
         } else {
             this.statusBarItem.dispose();
             this.statusBarItem = null;
@@ -208,7 +208,7 @@ class CodeCounterController {
         const langs = new Map<string, LanguageConf>();
         appendAll(langs, internalDefinitions);
         appendAll(langs, await this.loadLanguageConfigurations());
-        
+
         log(`load Language Settings = ${langs.size}`);
         await collectLanguageConfigurations(langs);
         log(`collect Language Settings = ${langs.size}`);
@@ -231,7 +231,7 @@ class CodeCounterController {
         }
         return {};
     }
-    
+
     public async saveLanguageConfigurations() {
         const c = await this.getCodeCounter();
         const langs = mapToObject(c.entries());
@@ -243,7 +243,7 @@ class CodeCounterController {
             default:
                 const uri = await this.getLangageConfUri();
                 log(`Language Settings File: ${uri}`);
-                if (uri) return writeTextFile(uri, JSON.stringify(langs), {recursive: true});
+                if (uri) return writeTextFile(uri, JSON.stringify(langs), { recursive: true });
         }
     }
 
@@ -297,10 +297,10 @@ class CodeCounterController {
 
             const counter = await this.getCodeCounter();
             const results = await countLines(counter, targetFiles, {
-                maxOpenFiles: this.conf.maxOpenFiles, 
-                fileEncoding: this.conf.encoding, 
-                ignoreUnsupportedFile: this.conf.ignoreUnsupportedFile, 
-                includeIncompleteLine: this.conf.includeIncompleteLine, 
+                maxOpenFiles: this.conf.maxOpenFiles,
+                fileEncoding: this.conf.encoding,
+                ignoreUnsupportedFile: this.conf.ignoreUnsupportedFile,
+                includeIncompleteLine: this.conf.includeIncompleteLine,
                 showStatus: (msg: string) => statusBar.text = `VSCodeCounter: ${msg}`
             });
             if (results.length <= 0) {
@@ -434,9 +434,9 @@ type VscodeLanguage = {
 };
 type VscodeLanguageConfiguration = Omit<vscode.LanguageConfiguration, 'autoClosingPairs'> & {
     autoClosingPairs?: ({
-		open?: string;
-		close?: string;
-		notIn?: string[];
+        open?: string;
+        close?: string;
+        notIn?: string[];
     } | vscode.CharacterPair)[];
 };
 
@@ -459,7 +459,7 @@ const append = (langs: Map<string, LanguageConf>, id: string, value: Partial<Lan
     langExt.blockComments.push(...(value.blockComments ?? []));
     langExt.blockStrings.push(...(value.blockStrings ?? []));
     langExt.lineStrings.push(...(value.lineStrings ?? []));
-    return langExt;           
+    return langExt;
 }
 const appendAll = (langs: Map<string, LanguageConf>, defs: { [id: string]: Partial<LanguageConf> }) => {
     Object.entries(defs).forEach(v => append(langs, v[0], v[1]));
@@ -615,6 +615,9 @@ class Statistics extends Count {
         return super.add(value);
     }
 }
+
+const escapeMarkdown = (text: string): string => text.replace(/([\\`*_\[\]])/g, '\\$1');
+
 class MarkdownTableFormatter {
     private valueToString: (obj: any) => string;
     private columnInfo: { title: string, format: string }[];
@@ -637,10 +640,15 @@ class MarkdownTableFormatter {
                 return d;
             }
             const relativePath = vscode.workspace.asRelativePath(d);
-            return `[${relativePath}](/${encodeURI(relativePath)})`;
+            return `[${escapeMarkdown(relativePath)}](/${encodeURI(relativePath)})`;
         }).join(' | ') + ' |';
     }
 }
+
+const stringCompare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
+const nameCompare = <T extends { name: string }>(a: T, b: T) => stringCompare(a.name, b.name);
+const filenameCompare = <T extends { filename: string }>(a: T, b: T) => stringCompare(a.filename, b.filename);
+
 class ResultFormatter {
     private dirResultTable = new Map<string, Statistics>();
     private langResultTable = new Map<string, Statistics>();
@@ -648,7 +656,7 @@ class ResultFormatter {
     private endOfLine: string;
     private valueToString: (obj: any) => string;
 
-    constructor(private targetDirUri: vscode.Uri, private results: Result[], conf: {countDirectLevelFiles: boolean, endOfLine: string, printNumberWithCommas: boolean}) {
+    constructor(private targetDirUri: vscode.Uri, private results: Result[], conf: { countDirectLevelFiles: boolean, endOfLine: string, printNumberWithCommas: boolean }) {
         this.endOfLine = conf.endOfLine;
         this.valueToString = conf.printNumberWithCommas ? toStringWithCommas : (obj: any) => obj.toString();
 
@@ -669,8 +677,8 @@ class ResultFormatter {
         });
         if (conf.countDirectLevelFiles) {
             [...directLevelResultTable.entries()].filter(([key, value]) => {
-                log(`  dir[${value.name}] total=${value.total}  ${(this.dirResultTable.get(key)?.total??0)}` );
-                return value.total !== (this.dirResultTable.get(key)?.total??0);
+                log(`  dir[${value.name}] total=${value.total}  ${(this.dirResultTable.get(key)?.total ?? 0)}`);
+                return value.total !== (this.dirResultTable.get(key)?.total ?? 0);
             }).forEach(([, value]) => this.dirResultTable.set(value.name, value));
         }
     }
@@ -678,7 +686,7 @@ class ResultFormatter {
         const languages = [...this.langResultTable.keys()];
         return [
             `"filename", "language", "${languages.join('", "')}", "comment", "blank", "total"`,
-            ...this.results.sort((a, b) => a.filename < b.filename ? -1 : a.filename > b.filename ? 1 : 0)
+            ...this.results.sort(filenameCompare)
                 .map(v => `"${v.filename}", "${v.language}", ${languages.map(l => l === v.language ? v.code : 0).join(', ')}, ${v.comment}, ${v.blank}, ${v.total}`),
             `"Total", "-", ${[...this.langResultTable.values()].map(r => r.code).join(', ')}, ${this.total.comment}, ${this.total.blank}, ${this.total.total}`
         ].join(this.endOfLine);
@@ -734,13 +742,13 @@ class ResultFormatter {
             '',
             'Directories',
             ...dirFormat.headerLines,
-            ...[...this.dirResultTable.values()].sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
+            ...[...this.dirResultTable.values()].sort(nameCompare)
                 .map(v => dirFormat.line(v.name, v.files, v.code, v.comment, v.blank, v.total)),
             ...dirFormat.footerLines,
             '',
             'Files',
             ...resultFormat.headerLines,
-            ...this.results.sort((a, b) => a.filename < b.filename ? -1 : a.filename > b.filename ? 1 : 0)
+            ...this.results.sort(filenameCompare)
                 .map(v => resultFormat.line(v.filename, v.language, v.code, v.comment, v.blank, v.total)),
             resultFormat.line('Total', '', this.total.code, this.total.comment, this.total.blank, this.total.total),
             ...resultFormat.footerLines,
@@ -806,7 +814,7 @@ class ResultFormatter {
             '',
             '## Directories',
             ...dirFormat.headerLines,
-            ...[...this.dirResultTable.values()].sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
+            ...[...this.dirResultTable.values()].sort(nameCompare)
                 .map(v => dirFormat.line(v.name.replace(/\\/g, '\\\\'), v.files, v.code, v.comment, v.blank, v.total)),
         ];
     }
@@ -822,7 +830,7 @@ class ResultFormatter {
         return [
             '## Files',
             ...resultFormat.headerLines,
-            ...this.results.sort((a, b) => a.filename < b.filename ? -1 : a.filename > b.filename ? 1 : 0)
+            ...this.results.sort(filenameCompare)
                 .map(v => resultFormat.line(v.uri, v.language, v.code, v.comment, v.blank, v.total)),
         ];
     }
