@@ -34,7 +34,7 @@ export default class Gitignore
                     .replace(/(^|[^\\])\?/g, '.')                 // '?' to '.'
                     .replace(/\/\*\*/g, '([\\\\/][^\\\\/]+)?')    // '/**'    '?' is a provisional measure.
                     .replace(/\*\*\//g, '([^\\\\/]+[\\\\/])?')    // '**/'    '?' is a provisional measure.
-                    .replace(/\*/g, '([^\\\\/]?)')                // '*'
+                    .replace(/([^\\])\*/g, '$1([^\\\\/]?)')       // '*' to any charactors
                     .replace(/\?/g, '*')                          // '?' to '*'
                     .replace(/[^\/]$/, '$&(([\\\\/].*)|$)')       // When the trailing character is not '/'.
                     .replace(/\/$/, '(([\\\\/].*)|$)');           // When the trailing character is '/'.
@@ -45,12 +45,20 @@ export default class Gitignore
         return { pattern: list.length > 0 ? '^((' + list.join(')|(') + '))' : '', included: index%2===0}; 
       })
       .filter(rule => rule.pattern.length > 0)
-      .map(rule => { 
-        return {pattern: new RegExp(rule.pattern), included: rule.included}; 
-      });
+      .map(rule => {
+        try {
+          // console.log(rule.pattern, rule.included);
+          return {pattern: new RegExp(rule.pattern), included: rule.included}; 
+        } catch (e) {
+          console.warn(e);
+          return undefined;
+        }
+      })
+      .filter((v): v is {pattern: RegExp, included: boolean} => !!v);
   }
   public includes(filepath: string): boolean {
-    const rule = this.rules.find(v => v.pattern.test(filepath.replace(/\\/g, '/')));
+    filepath = filepath.replace(/\\/g, '/');
+    const rule = this.rules.find(v => v.pattern.test(filepath));
     // if (rule) {
     //   console.log(`##GitIgnore ${filepath}: ${rule?.pattern} ${rule?.included}`);
     // }

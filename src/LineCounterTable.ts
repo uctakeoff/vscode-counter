@@ -36,19 +36,20 @@ export class LineCounterTable {
             const langName = lang.aliases.length > 0 ? lang.aliases[0] : id;
             const lineCounter = new LineCounter(langName, lang.lineComments, lang.blockComments, lang.blockStrings, lang.lineStrings);
             lang.aliases.forEach(v => this.aliasTable.set(v, lineCounter));
-            lang.extensions.forEach(v => this.fileextRules.set(v.startsWith('.') ? v : `.${v}`, lineCounter));
-            lang.filenames.forEach(v => this.filenameRules.set(v, lineCounter));
+            lang.extensions.forEach(v => this.fileextRules.set((v.startsWith('.') ? v : `.${v}`).toLowerCase(), lineCounter));
+            lang.filenames.forEach(v => this.filenameRules.set(v.toLowerCase(), lineCounter));
         });
     }
     public entries = () => this.langExtensions;
 
     public getCounter(filePath: string, langId?: string) {
+        const filePathL = filePath.toLowerCase();
         // priority
-        return this.getByAssociations(filePath)
-            || this.filenameRules.get(path.basename(filePath))
+        return this.getByAssociations(filePathL)
+            || this.filenameRules.get(path.basename(filePathL))
             || this.getById(langId)
-            || this.fileextRules.get(filePath)
-            || this.fileextRules.get(path.extname(filePath))
+            || this.fileextRules.get(filePathL)
+            || this.fileextRules.get(path.extname(filePathL))
             ;
     }
 
@@ -57,7 +58,6 @@ export class LineCounterTable {
     }
     private getByAssociations(filePath: string) {
         const patType = this.associations.find(([pattern,]) => minimatch(filePath, pattern, { matchBase: true }));
-        // log(`## ${filePath}: ${patType}`);
         return (patType !== undefined) ? this.getById(patType[1]) : undefined;
     }
 }
