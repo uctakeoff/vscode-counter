@@ -7,6 +7,10 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 * workspace counter in status bar.
 
+## [3.6.3]
+### Fixed
+- Extension breaks when some characters are used in .gitignore (#107)
+
 ## [3.6.2]
 ### Fixed
 - File name with markdown syntax don't display correctly. (#109)
