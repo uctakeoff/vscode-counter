@@ -24,7 +24,7 @@ export class Count {
 const nextIndexOf = (str: string, searchValue: string, fromIndex = 0) => {
     const index = str.indexOf(searchValue, fromIndex);
     return (index >= 0) ? index + searchValue.length : index;
-}
+};
 const findFirstOf = (str: string, searchStrings: string[], position?: number): [number, number] => {
     let strIndex = Number.MAX_VALUE;
     let arrIndex = -1;
@@ -36,17 +36,17 @@ const findFirstOf = (str: string, searchStrings: string[], position?: number): [
         }
     });
     return [strIndex, arrIndex];
-}
+};
 const rxEspaceRegExpChar = /[.*+?^${}()|[\]\\]/g;
 const createStringLiteralRegex = (pairs?: [string, string][]) => {
-    if (!pairs || pairs.length <= 0) return undefined;
+    if (!pairs || pairs.length <= 0) {return undefined;}
     const pattern = pairs.map(([start, end]) => {
         const s = start.replace(rxEspaceRegExpChar, '\\$&');
         const e = end.replace(rxEspaceRegExpChar, '\\$&');
         return `${s}(?:\\\\.|[^${e}\\\\])*${e}`;
     }).join('|');
     return new RegExp(pattern, 'g');
-}
+};
 const LineType = { Code: 0, Comment: 1, Blank: 2 } as const;
 
 export class LineCounter {
@@ -63,7 +63,7 @@ export class LineCounter {
         this.blockCommentBegins = this.blockComments.map(b => b[0]);
         this.blockStringBegins = this.blockStrings.map(b => b[0]);
         const s = (lineStrings ?? []).filter(p => {
-             return blockStrings.every(b => !p[0].startsWith(b[0])) 
+            return blockStrings.every(b => !p[0].startsWith(b[0]))
                 && blockComments.every(b => !p[0].startsWith(b[0]));
         });
         // console.log(`${name}: ${s.map(v=>v.join('')).join(', ')}\n   ${blockComments.map(v=>v.join('')).join(', ')}\n   ${blockStrings.map(v=>v.join('')).join(', ')}\n  ${lineStrings?.map(v=>v.join('')).join(', ')}`);
@@ -73,7 +73,7 @@ export class LineCounter {
                 this.removeStringLiteral = (line) => line.replace(pattern, '');
             }
         } catch (e) {
-            console.warn(`${name}: ${s.map(v=>v.join('')).join(', ')}`);
+            console.warn(`${name}: ${s.map(v => v.join('')).join(', ')}`);
         }
     }
     public count(text: string, includeIncompleteLine = false): Count {

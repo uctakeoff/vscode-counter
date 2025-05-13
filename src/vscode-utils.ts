@@ -12,17 +12,17 @@ export const compileTemplate = (template: string, variables: Record<string, stri
     let startIndex = 0;
     let match;
     while ((match = regexp.exec(template)) !== null) {
-      const s = template.substring(startIndex, regexp.lastIndex - match[0].length);
-      startIndex = regexp.lastIndex;
-      if (match[1]) {
-          ret.push(s, variables[match[1]]);
-      } else if (match[2]) {
-          ret.push(s, '$');    
-      }
+        const s = template.substring(startIndex, regexp.lastIndex - match[0].length);
+        startIndex = regexp.lastIndex;
+        if (match[1]) {
+            ret.push(s, variables[match[1]]);
+        } else if (match[2]) {
+            ret.push(s, '$');
+        }
     }
     ret.push(template.substring(startIndex));
     return ret.join('');
-}
+};
 
 export const currentWorkspaceFolder = async () => {
     const folders = vscode.workspace.workspaceFolders ?? [];
@@ -30,20 +30,20 @@ export const currentWorkspaceFolder = async () => {
         return folders[0];
     } else if (folders.length > 1) {
         const folder = await vscode.window.showWorkspaceFolderPick();
-        if (folder) return folder;
+        if (folder) {return folder;}
     }
     throw Error('workspace not open.');
-}
+};
 
 export const buildUri = (uri: vscode.Uri, ...uriOrPaths: string[]) => {
     return uriOrPaths.reduce((baseUri, uriOrPath) => {
         const u = vscode.Uri.parse(uriOrPath);
         // log(`[${baseUri}]+[${uriOrPath}](abs=${path.isAbsolute(uriOrPath)}) parse=[${u}], file=[${vscode.Uri.file(uriOrPath)}]`, u);
         return path.isAbsolute(uriOrPath) ? vscode.Uri.file(uriOrPath)
-        : (!baseUri || uriOrPath.startsWith(u.scheme + '://')) ? vscode.Uri.file(uriOrPath)
-        : vscode.Uri.joinPath(baseUri, uriOrPath);
+            : (!baseUri || uriOrPath.startsWith(u.scheme + '://')) ? vscode.Uri.file(uriOrPath)
+                : vscode.Uri.joinPath(baseUri, uriOrPath);
     }, uri);
-}
+};
 export const dirUri = (uri: vscode.Uri) => uri.with({ path: path.dirname(uri.path) });
 
 const decoderU8 = new TextDecoder('utf8');
@@ -106,12 +106,12 @@ export const readUtf8File = async (uri: vscode.Uri): Promise<{ uri: vscode.Uri, 
         const bin = await vscode.workspace.fs.readFile(uri);
         // log(`read ${uri} : ${bin.length}B`);
         const data = decoderU8.decode(bin);
-        return {uri, data};
+        return { uri, data };
     } catch (error: any) {
         log(`readUtf8File(${uri}) failed. : ${error}`);
         return { uri, data: '', error };
     }
-}
+};
 
 export const readUtf8Files = async (uris: vscode.Uri[]) => {
     const ret: { uri: vscode.Uri, data: string, error?: any }[] = [];
@@ -119,44 +119,44 @@ export const readUtf8Files = async (uris: vscode.Uri[]) => {
         ret.push(await readUtf8File(uri));
     }
     return ret;
-}
+};
 
 export const checkJsonType = <T extends boolean | number | string | Array<any> | { [key: string]: any }>(json: any, defaultValue: T): T => {
-    if (json === null || json === undefined) return defaultValue;
+    if (json === null || json === undefined) {return defaultValue;}
     const typeOfT = Array.isArray(defaultValue) ? 'array' : typeof defaultValue;
     const type = Array.isArray(json) ? 'array' : typeof json;
     if ((type === typeOfT) && ['object', 'number', 'boolean', 'string', 'array'].some(t => t === type)) {
         return json as T;
     }
     return defaultValue;
-}
+};
 
 export const readJsonFile = async <T extends boolean | number | string | Array<any> | { [key: string]: any }>(uri: vscode.Uri, defaultValue: T): Promise<T> => {
     try {
         const text = await readUtf8File(uri);
-        if (text.error) return defaultValue;
+        if (text.error) {return defaultValue;}
         const json = JSONC.parse(text.data);
         return checkJsonType(json, defaultValue);
     } catch (e: any) {
         log(`readJsonFile(${uri}) failed. : ${e}`);
     }
     return defaultValue;
-}
+};
 
 export const showTextFile = async (uri: vscode.Uri) => {
     const doc = await vscode.workspace.openTextDocument(uri);
     return await vscode.window.showTextDocument(doc, vscode.ViewColumn.One, true);
-}
+};
 export const showTextPreview = async (uri: vscode.Uri) => {
     if (uri.path.endsWith('.md')) {
         await vscode.commands.executeCommand("markdown.showPreview", uri);
     } else {
         await showTextFile(uri);
     }
-}
-export const writeTextFile = async (uri: vscode.Uri, text: string, option?: {recursive?: boolean}) => {
+};
+export const writeTextFile = async (uri: vscode.Uri, text: string, option?: { recursive?: boolean }) => {
     if (option?.recursive) {
         await vscode.workspace.fs.createDirectory(dirUri(uri));
     }
     await vscode.workspace.fs.writeFile(uri, encoderU8.encode(text));
-}
+};
