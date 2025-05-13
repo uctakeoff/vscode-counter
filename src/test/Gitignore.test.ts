@@ -1,9 +1,9 @@
 import * as assert from 'assert';
 import {describe, it, before} from 'mocha';
 import * as vscode from 'vscode';
-import Gitignore from '../../Gitignore';
+import Gitignore from '../Gitignore';
 
-describe('Extension Test Suite', () => {
+describe('Gitignore', () => {
   before(() => {
     vscode.window.showInformationMessage('Start all tests.');
   });

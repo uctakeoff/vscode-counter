@@ -1,4 +1,3 @@
-'use strict';
 import { LanguageConf } from './LineCounterTable';
 
 export const internalDefinitions: { [id: string]: Partial<LanguageConf> } = {

@@ -1,5 +1,3 @@
-'use strict';
-
 export class Count {
     constructor(
         public code: number = 0,
