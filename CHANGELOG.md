@@ -7,6 +7,10 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 * workspace counter in status bar.
 
+## [3.7.0]
+### Changed
+- Added: Word Count in status bar (#112)
+
 ## [3.6.3]
 ### Fixed
 - Extension breaks when some characters are used in .gitignore (#107)

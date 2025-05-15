@@ -7,6 +7,7 @@ import { LanguageConf, LineCounterTable } from './LineCounterTable';
 import Gitignore from './Gitignore';
 import { buildUri, compileTemplate, createTextDecoder, currentWorkspaceFolder, dirUri, readJsonFile, readUtf8Files, showTextPreview, writeTextFile } from './vscode-utils';
 import { internalDefinitions } from './internalDefinitions';
+import { countWords } from './WordCounter';
 
 const EXTENSION_ID = 'uctakeoff.vscode-counter';
 const EXTENSION_NAME = 'VSCodeCounter';
@@ -334,20 +335,38 @@ class CodeCounterController {
         const c = await this.getCodeCounter();
         const lineCounter = doc ? c.getCounter(doc.uri.fsPath, doc.languageId) : undefined;
         if (!this.statusBarItem) {return;}
-        let text: string | undefined;
-        if (doc && lineCounter) {
+        const texts: string[] = [];
+        const addText = (c: number|undefined, unit: string) => {
+            if (c !== undefined) {
+                texts.push(`${c} ${unit}${c === 1 ? '' : 's'}`);
+            }
+        };
+        if (doc) {
             if (!selections || selections.length <= 0 || selections[0].isEmpty) {
-                const result = lineCounter?.count(doc.getText(), this.conf.includeIncompleteLine);
-                text = `Code: ${result.code} Comment: ${result.comment} Blank: ${result.blank}`;
+                const docText = doc.getText();
+                const words = countWords(docText, vscode.env.language);
+                const result = lineCounter?.count(docText, this.conf.includeIncompleteLine);
+                addText(result?.code, 'code');
+                addText(result?.comment, 'comment');
+                addText(result?.blank, 'blank');
+                addText(words, 'word');
+                addText(docText.length, 'char');
             } else {
-                const result = selections
-                    .map(s => lineCounter.count(doc.getText(s), true))
+                const docTexts = selections.map(s => doc.getText(s));
+                const words = docTexts.map(d => countWords(d, vscode.env.language)).reduce((v, s) => v + s);
+                const result = !lineCounter ? undefined : docTexts.map(d => lineCounter.count(d, true))
                     .reduce((prev, cur) => prev.add(cur), new Count());
-                text = `Selected Code: ${result.code} Comment: ${result.comment} Blank: ${result.blank}`;
+                texts.push('Selected');
+                addText(result?.code, 'code');
+                addText(result?.comment, 'comment');
+                addText(result?.blank, 'blank');
+                addText(words, 'word');
+                addText(docTexts.reduce((s, d) => s + d.length, 0), 'char');
             }
         }
         this.statusBarItem.show();
-        this.statusBarItem.text = text ?? `${EXTENSION_NAME}: Unsupported`;
+        // this.statusBarItem.text = text || `${EXTENSION_NAME}: Unsupported`;
+        this.statusBarItem.text = `$(pencil)${texts.join(' ') || 'Unsupported'}`;
     }
 
     private toOutputChannel(text: string) {
