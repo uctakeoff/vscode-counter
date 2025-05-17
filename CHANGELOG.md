@@ -7,6 +7,12 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 * workspace counter in status bar.
 
+## [3.7.1]
+### Changed
+- Improved analysis algorithm
+- Fixed: Python block comments not being detected (#110)
+  - Not perfect, but more accurate.
+
 ## [3.7.0]
 ### Changed
 - Added: Word Count in status bar (#112)
