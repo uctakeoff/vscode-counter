@@ -1,6 +1,5 @@
-'use strict';
 import * as path from 'path';
-import * as minimatch from 'minimatch';
+import { minimatch } from 'minimatch';
 import { LineCounter } from './LineCounter';
 
 export type LanguageConf = {
@@ -11,6 +10,7 @@ export type LanguageConf = {
     blockComments: [string, string][];
     blockStrings: [string, string][];
     lineStrings: [string, string][];
+    blockStringAsComment?: boolean;
 }
 const uniqueLanguageConf = (conf: LanguageConf) => {
     // console.log(`1langExtensions : `, conf);
@@ -22,6 +22,10 @@ const uniqueLanguageConf = (conf: LanguageConf) => {
     conf.blockStrings = [...new Map(conf.blockStrings)];
     conf.lineStrings = [...new Map(conf.lineStrings)];
     // console.log(`2langExtensions : `, conf);
+    conf.lineStrings = (conf.lineStrings ?? []).filter(p => {
+        return conf.blockStrings.every(b => !p[0].startsWith(b[0]))
+            && conf.blockComments.every(b => !p[0].startsWith(b[0]));
+    });
 };
 export class LineCounterTable {
     private langIdTable: Map<string, LineCounter> = new Map();
@@ -34,7 +38,8 @@ export class LineCounterTable {
         this.langExtensions.forEach(v => uniqueLanguageConf(v));
         langExtensions.forEach((lang, id) => {
             const langName = lang.aliases.length > 0 ? lang.aliases[0] : id;
-            const lineCounter = new LineCounter(langName, lang.lineComments, lang.blockComments, lang.blockStrings, lang.lineStrings);
+            // console.log(id, lang);
+            const lineCounter = new LineCounter(langName, lang.lineComments, lang.blockComments, lang.blockStrings, lang.lineStrings, lang.blockStringAsComment);
             lang.aliases.forEach(v => this.aliasTable.set(v, lineCounter));
             lang.extensions.forEach(v => this.fileextRules.set((v.startsWith('.') ? v : `.${v}`).toLowerCase(), lineCounter));
             lang.filenames.forEach(v => this.filenameRules.set(v.toLowerCase(), lineCounter));

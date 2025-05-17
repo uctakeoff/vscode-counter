@@ -1,4 +1,3 @@
-'use strict';
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
@@ -8,6 +7,7 @@ import { LanguageConf, LineCounterTable } from './LineCounterTable';
 import Gitignore from './Gitignore';
 import { buildUri, compileTemplate, createTextDecoder, currentWorkspaceFolder, dirUri, readJsonFile, readUtf8Files, showTextPreview, writeTextFile } from './vscode-utils';
 import { internalDefinitions } from './internalDefinitions';
+import { countWords } from './WordCounter';
 
 const EXTENSION_ID = 'uctakeoff.vscode-counter';
 const EXTENSION_NAME = 'VSCodeCounter';
@@ -16,7 +16,7 @@ const toZeroPadString = (num: number, fig: number) => num.toString().padStart(fi
 const toLocalDateString = (date: Date, delims: [string, string, string] = ['-', ' ', ':']) => {
     return `${date.getFullYear()}${delims[0]}${toZeroPadString(date.getMonth() + 1, 2)}${delims[0]}${toZeroPadString(date.getDate(), 2)}${delims[1]}`
         + `${toZeroPadString(date.getHours(), 2)}${delims[2]}${toZeroPadString(date.getMinutes(), 2)}${delims[2]}${toZeroPadString(date.getSeconds(), 2)}`;
-}
+};
 const toStringWithCommas = (obj: any) => {
     if (typeof obj === 'number') {
         return new Intl.NumberFormat('en-US').format(obj);
@@ -35,7 +35,7 @@ const registerCommand = (command: string, callback: (...args: any[]) => Promise<
             showError(`"${command}" failed.`, e.message);
         }
     }, thisArg);
-}
+};
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -51,9 +51,9 @@ export const activate = (context: vscode.ExtensionContext) => {
         registerCommand('saveLanguageConfigurations', () => codeCountController.saveLanguageConfigurations()),
         registerCommand('outputAvailableLanguages', () => codeCountController.outputAvailableLanguages())
     );
-}
+};
 // this method is called when your extension is deactivated
-export const deactivate = () => { }
+export const deactivate = () => { };
 
 type LanguageLocation = 'global settings' | 'workspace settings' | 'output directory' | 'use languageConfUri';
 
@@ -95,14 +95,14 @@ const loadConfig = () => {
         outputAsMarkdown: conf.get('outputAsMarkdown', true),
         countDirectLevelFiles: conf.get('countDirectLevelFiles', true),
     };
-}
+};
 type Config = ReturnType<typeof loadConfig>;
 
 const pathBasedName = (uri: vscode.Uri) => {
     const path = (uri.scheme === 'file') ? uri.fsPath : uri.toString();
     // return path.replace(/[^\w\-~\.]+/g, '-');
     return path.replace(/[:\/\\?#\[\]\@]+/g, '-');
-}
+};
 class CodeCounterController {
     private codeCounter_: LineCounterTable | null = null;
     private statusBarItem: vscode.StatusBarItem | null = null;
@@ -203,7 +203,7 @@ class CodeCounterController {
 
     private async getCodeCounter() {
         if (this.codeCounter_) {
-            return this.codeCounter_
+            return this.codeCounter_;
         }
         const langs = new Map<string, LanguageConf>();
         appendAll(langs, internalDefinitions);
@@ -224,7 +224,7 @@ class CodeCounterController {
                 default:
                     const uri = await this.getLangageConfUri();
                     log(`Language Settings File: ${uri}`);
-                    if (uri) return await readJsonFile<{ [key: string]: Partial<LanguageConf> }>(uri, {});
+                    if (uri) {return await readJsonFile<{ [key: string]: Partial<LanguageConf> }>(uri, {});}
             }
         } catch (e: any) {
             showError(`loadLanguageConfigurations failed. ${e.message}`);
@@ -243,7 +243,7 @@ class CodeCounterController {
             default:
                 const uri = await this.getLangageConfUri();
                 log(`Language Settings File: ${uri}`);
-                if (uri) return writeTextFile(uri, JSON.stringify(langs), { recursive: true });
+                if (uri) {return writeTextFile(uri, JSON.stringify(langs), { recursive: true });}
         }
     }
 
@@ -311,7 +311,7 @@ class CodeCounterController {
             await vscode.workspace.fs.createDirectory(outputDir);
             const regex = /^\d\d\d\d-\d\d-\d\d\_\d\d-\d\d-\d\d$/;
             const histories = (await vscode.workspace.fs.readDirectory(outputDir))
-                .filter(d => ((d[1] & vscode.FileType.Directory) != 0) && regex.test(d[0]))
+                .filter(d => ((d[1] & vscode.FileType.Directory) !== 0) && regex.test(d[0]))
                 .map(d => d[0])
                 .sort()
                 .map(d => vscode.Uri.joinPath(outputDir, d));
@@ -334,21 +334,39 @@ class CodeCounterController {
     private async countLinesOfFile(doc: vscode.TextDocument | undefined, selections?: readonly vscode.Selection[]) {
         const c = await this.getCodeCounter();
         const lineCounter = doc ? c.getCounter(doc.uri.fsPath, doc.languageId) : undefined;
-        if (!this.statusBarItem) return;
-        let text: string | undefined;
-        if (doc && lineCounter) {
+        if (!this.statusBarItem) {return;}
+        const texts: string[] = [];
+        const addText = (c: number|undefined, unit: string) => {
+            if (c !== undefined) {
+                texts.push(`${c}${unit}${c === 1 ? '' : 's'}`);
+            }
+        };
+        if (doc) {
             if (!selections || selections.length <= 0 || selections[0].isEmpty) {
-                const result = lineCounter?.count(doc.getText(), this.conf.includeIncompleteLine);
-                text = `Code: ${result.code} Comment: ${result.comment} Blank: ${result.blank}`;
+                const docText = doc.getText();
+                const words = countWords(docText, vscode.env.language);
+                const result = lineCounter?.count(docText, this.conf.includeIncompleteLine);
+                addText(result?.code, 'code');
+                addText(result?.comment, 'comment');
+                addText(result?.blank, 'blank');
+                addText(words, 'word');
+                addText(docText.length, 'char');
             } else {
-                const result = selections
-                    .map(s => lineCounter.count(doc.getText(s), true))
+                const docTexts = selections.map(s => doc.getText(s));
+                const words = docTexts.map(d => countWords(d, vscode.env.language)).reduce((v, s) => v + s);
+                const result = !lineCounter ? undefined : docTexts.map(d => lineCounter.count(d, true))
                     .reduce((prev, cur) => prev.add(cur), new Count());
-                text = `Selected Code: ${result.code} Comment: ${result.comment} Blank: ${result.blank}`;
+                texts.push('Selected');
+                addText(result?.code, 'code');
+                addText(result?.comment, 'comment');
+                addText(result?.blank, 'blank');
+                addText(words, 'word');
+                addText(docTexts.reduce((s, d) => s + d.length, 0), 'char');
             }
         }
         this.statusBarItem.show();
-        this.statusBarItem.text = text ?? `${EXTENSION_NAME}: Unsupported`;
+        // this.statusBarItem.text = text || `${EXTENSION_NAME}: Unsupported`;
+        this.statusBarItem.text = `$(pencil)${texts.join(' ') || 'Unsupported'}`;
     }
 
     private toOutputChannel(text: string) {
@@ -366,7 +384,7 @@ const loadGitIgnore = async (maxFindFiles?: number) => {
     gitignoreFiles.forEach(f => log(`use gitignore : ${f}`));
     const values = await readUtf8Files(gitignoreFiles.sort());
     return new Gitignore('').merge(...values.map(p => new Gitignore(p.data, dirUri(p.uri).fsPath)));
-}
+};
 type CountLineOption = {
     maxOpenFiles: number;
     fileEncoding: string;
@@ -423,7 +441,7 @@ const countLines = (lineCounterTable: LineCounterTable, fileUris: vscode.Uri[], 
             }
         }
     });
-}
+};
 
 type VscodeLanguage = {
     id: string;
@@ -450,7 +468,7 @@ const append = (langs: Map<string, LanguageConf>, id: string, value: Partial<Lan
             blockComments: [],
             blockStrings: [],
             lineStrings: [],
-        }
+        };
     });
     langExt.aliases.push(...(value.aliases ?? []));
     langExt.filenames.push(...(value.filenames ?? []));
@@ -459,11 +477,12 @@ const append = (langs: Map<string, LanguageConf>, id: string, value: Partial<Lan
     langExt.blockComments.push(...(value.blockComments ?? []));
     langExt.blockStrings.push(...(value.blockStrings ?? []));
     langExt.lineStrings.push(...(value.lineStrings ?? []));
+    langExt.blockStringAsComment = langExt.blockStringAsComment || value.blockStringAsComment;
     return langExt;
-}
+};
 const appendAll = (langs: Map<string, LanguageConf>, defs: { [id: string]: Partial<LanguageConf> }) => {
     Object.entries(defs).forEach(v => append(langs, v[0], v[1]));
-}
+};
 
 const collectLanguageConfigurations = (langs: Map<string, LanguageConf>): Promise<Map<string, LanguageConf>> => {
     return new Promise((resolve: (values: Map<string, LanguageConf>) => void, reject: (reason: any) => void) => {
@@ -511,7 +530,7 @@ const collectLanguageConfigurations = (langs: Map<string, LanguageConf>): Promis
             });
         }
     });
-}
+};
 
 
 const previewFiles = new Map<string, string>([
@@ -579,7 +598,7 @@ const outputResults = async (date: Date, targetDirUri: vscode.Uri, results: Resu
     if (previewFile) {
         showTextPreview(vscode.Uri.joinPath(outputDir, previewFile));
     }
-}
+};
 
 class Result extends Count {
     public uri: vscode.Uri;
@@ -601,7 +620,7 @@ const resultsToJson = (results: Result[]) => {
     results.forEach(({ uri, language, code, comment, blank }) => obj[uri.toString()] = { language, code, comment, blank });
     // return JSON.stringify(obj, undefined, 2);
     return JSON.stringify(obj);
-}
+};
 class Statistics extends Count {
     public name: string;
     public files = 0;
@@ -838,12 +857,12 @@ class ResultFormatter {
 
 
 const mapToObject = <T>(map: Map<string, T>) => {
-    const obj: { [key: string]: T } = {}
+    const obj: { [key: string]: T } = {};
     map.forEach((v, id) => {
-        obj[id] = v
-    })
+        obj[id] = v;
+    });
     return obj;
-}
+};
 
 const getOrSet = <K, V>(map: Map<K, V>, key: K, otherwise: () => V) => {
     let v = map.get(key);
@@ -852,4 +871,4 @@ const getOrSet = <K, V>(map: Map<K, V>, key: K, otherwise: () => V) => {
         map.set(key, v);
     }
     return v;
-}
+};
