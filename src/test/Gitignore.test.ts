@@ -1,12 +1,12 @@
 import * as assert from 'assert';
 import {describe, it, before} from 'mocha';
-import * as vscode from 'vscode';
+// import * as vscode from 'vscode';
 import Gitignore from '../Gitignore';
 
 describe('Gitignore', () => {
-  before(() => {
-    vscode.window.showInformationMessage('Start all tests.');
-  });
+  // before(() => {
+  //   vscode.window.showInformationMessage('Start all tests.');
+  // });
 
   it('Simple', () => {
     const parser = new Gitignore(`

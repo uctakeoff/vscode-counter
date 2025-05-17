@@ -10,6 +10,7 @@ export type LanguageConf = {
     blockComments: [string, string][];
     blockStrings: [string, string][];
     lineStrings: [string, string][];
+    blockStringAsComment?: boolean;
 }
 const uniqueLanguageConf = (conf: LanguageConf) => {
     // console.log(`1langExtensions : `, conf);
@@ -33,7 +34,8 @@ export class LineCounterTable {
         this.langExtensions.forEach(v => uniqueLanguageConf(v));
         langExtensions.forEach((lang, id) => {
             const langName = lang.aliases.length > 0 ? lang.aliases[0] : id;
-            const lineCounter = new LineCounter(langName, lang.lineComments, lang.blockComments, lang.blockStrings, lang.lineStrings);
+            // console.log(id, lang);
+            const lineCounter = new LineCounter(langName, lang.lineComments, lang.blockComments, lang.blockStrings, lang.lineStrings, lang.blockStringAsComment);
             lang.aliases.forEach(v => this.aliasTable.set(v, lineCounter));
             lang.extensions.forEach(v => this.fileextRules.set((v.startsWith('.') ? v : `.${v}`).toLowerCase(), lineCounter));
             lang.filenames.forEach(v => this.filenameRules.set(v.toLowerCase(), lineCounter));

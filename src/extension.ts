@@ -338,7 +338,7 @@ class CodeCounterController {
         const texts: string[] = [];
         const addText = (c: number|undefined, unit: string) => {
             if (c !== undefined) {
-                texts.push(`${c} ${unit}${c === 1 ? '' : 's'}`);
+                texts.push(`${c}${unit}${c === 1 ? '' : 's'}`);
             }
         };
         if (doc) {
@@ -477,6 +477,7 @@ const append = (langs: Map<string, LanguageConf>, id: string, value: Partial<Lan
     langExt.blockComments.push(...(value.blockComments ?? []));
     langExt.blockStrings.push(...(value.blockStrings ?? []));
     langExt.lineStrings.push(...(value.lineStrings ?? []));
+    langExt.blockStringAsComment = langExt.blockStringAsComment || value.blockStringAsComment;
     return langExt;
 };
 const appendAll = (langs: Map<string, LanguageConf>, defs: { [id: string]: Partial<LanguageConf> }) => {

@@ -4,6 +4,12 @@ export const internalDefinitions: { [id: string]: Partial<LanguageConf> } = {
     cpp: {
         blockStrings: [['R("', '")']],
     },
+    javascript: {
+        blockStrings: [['`', '`']],
+    },
+    typescript: {
+        blockStrings: [['`', '`']],
+    },
     javascriptreact: {
         blockStrings: [['`', '`']],
         blockComments: [['{/*', '*/}']],
@@ -20,5 +26,9 @@ export const internalDefinitions: { [id: string]: Partial<LanguageConf> } = {
             'rem',
             '@rem',
         ]
-    }
+    },
+    python: {
+        blockStrings: [[ '"""', '"""' ]],
+        blockStringAsComment: true,
+    },
 };

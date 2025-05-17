@@ -4,3 +4,5 @@ node_modules
 .VSCodeCounter/
 *.vsix
 yarn.lock
+vitest.config.js
+vitest.config.js.map
