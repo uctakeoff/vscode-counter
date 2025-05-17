@@ -22,6 +22,10 @@ const uniqueLanguageConf = (conf: LanguageConf) => {
     conf.blockStrings = [...new Map(conf.blockStrings)];
     conf.lineStrings = [...new Map(conf.lineStrings)];
     // console.log(`2langExtensions : `, conf);
+    conf.lineStrings = (conf.lineStrings ?? []).filter(p => {
+        return conf.blockStrings.every(b => !p[0].startsWith(b[0]))
+            && conf.blockComments.every(b => !p[0].startsWith(b[0]));
+    });
 };
 export class LineCounterTable {
     private langIdTable: Map<string, LineCounter> = new Map();

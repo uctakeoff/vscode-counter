@@ -30,5 +30,6 @@
   "configuration.languages.extensions.description": "File extensions associated to the language.",
   "configuration.languages.lineComments.description": "The character sequence that starts a line comment.",
   "configuration.languages.blockComments.description": "The character sequence indicating the beginning and end of the block comment.",
-  "configuration.languages.blockStrings.description": "The character sequence indicating the beginning and end of the block document(here document)."
+  "configuration.languages.blockStrings.description": "The character sequence indicating the beginning and end of the block document(here document).",
+  "configuration.languages.blockStringAsComment.description": "A block string starting at the beginning of a line is considered a comment."
 }

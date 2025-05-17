@@ -7,6 +7,10 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 * workspace counter in status bar.
 
+## [3.7.2]
+### Changed
+- Some languages are included as standard
+
 ## [3.7.1]
 ### Changed
 - Improved analysis algorithm

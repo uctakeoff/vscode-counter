@@ -30,5 +30,6 @@
   "configuration.languages.extensions.description": "言語に関連付けられたファイル拡張子.",
   "configuration.languages.lineComments.description": "行コメントを開始する文字列.",
   "configuration.languages.blockComments.description": "ブロックコメントの開始と終了を示す文字列.",
-  "configuration.languages.blockStrings.description": "複数行文字列(ヒアドキュメント)の先頭と末尾を示す文字列."
+  "configuration.languages.blockStrings.description": "ブロック文字列(ヒアドキュメント)の先頭と末尾を示す文字列.",
+  "configuration.languages.blockStringAsComment.description": "行頭から始まるブロック文字列をコメントとみなす."
 }

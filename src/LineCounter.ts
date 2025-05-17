@@ -52,7 +52,7 @@ export class LineCounter {
             blockStrings.map(v => escapeForRegexp(v[0])).join('|'),
             blockComments.map(v => escapeForRegexp(v[0])).join('|'),
             lineStrings.map(v => pickupStringLiteralRegexpSource(v)).join('|'),
-        ].map(r => !r ? "(?!x)x" : r).join(')|(')})`;
+        ].map(r => !r ? '(?!x)x' : r).join(')|(')})`;
         this.regex = new RegExp(source, 'g');
         // console.log(`${name}:《${lineComments}》《${blockComments}》《${blockStrings}》《${lineStrings}》《${blockStringAsComment}》`);
         // console.log(name, this.regex.source, blockStringAsComment);
@@ -109,14 +109,14 @@ export class LineCounter {
                         // start block string
                         type = this.blockStringAsComment && match.index === 0 ? LineType.Comment : LineType.Code;
                         // type = LineType.Code;
-                        blockStringEnd = this.blockStrings.find(v => v[0] === match[1])?.[1] ?? "";
+                        blockStringEnd = this.blockStrings.find(v => v[0] === match[1])?.[1] ?? '';
                         i = match.index + match[1].length;
                         continue;
                     }
                     if (match[2]) {
                         // start block comment
                         type = match.index === 0 ? LineType.Comment : LineType.Code;
-                        blockCommentEnd = this.blockComments.find(v => v[0] === match[2])?.[1] ?? "";
+                        blockCommentEnd = this.blockComments.find(v => v[0] === match[2])?.[1] ?? '';
                         i = match.index + match[2].length;
                         continue;
                     }

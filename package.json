@@ -2,7 +2,7 @@
   "name": "vscode-counter",
   "displayName": "VS Code Counter",
   "description": "Count lines of code in many programming languages.",
-  "version": "3.7.1",
+  "version": "3.7.2",
   "publisher": "uctakeoff",
   "author": {
     "name": "Ushiyama Kentaro"
@@ -267,6 +267,10 @@
                       "type": "string"
                     }
                   }
+                },
+                "blockStringAsComment": {
+                  "type": "boolean",
+                  "description": "%configuration.languages.blockStringAsComment.description%"
                 }
               }
             }
