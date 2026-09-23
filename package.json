@@ -303,6 +303,7 @@
     "vitest": "^4.1.11"
   },
   "dependencies": {
+    "ignore": "^7.0.10",
     "jsonc-parser": "^3.3.1",
     "minimatch": "^10.0.1"
   }

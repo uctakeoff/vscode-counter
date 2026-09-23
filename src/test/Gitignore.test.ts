@@ -34,7 +34,9 @@ config.local.js
     assert.ok(parser.includes('node_modules/express')); // true
     assert.ok(!parser.includes('src/index.ts')); // false
     assert.ok(parser.includes('.vscode/settings.json')); // true
-    assert.ok(!parser.includes('.vscode/extensions.json')); // false
+    // git cannot re-include a file whose parent directory is excluded, so `!.vscode/extensions.json`
+    // has no effect while `.vscode/` is ignored. Verified with `git check-ignore -v`.
+    assert.ok(parser.includes('.vscode/extensions.json')); // true
 
     assert.ok(parser.includes('src/api/temp/debug.log')); // true
     assert.ok(parser.includes('src/api/config.local.js')); // true

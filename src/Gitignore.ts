@@ -1,76 +1,81 @@
+import ignore, { type Ignore } from 'ignore';
+
+/**
+ * The rules of a single `.gitignore` file, together with the directory they are relative to.
+ */
+type Section = {
+  /** Directory the patterns apply to. Either empty, or normalized to end with '/'. */
+  dir: string;
+  /** Number of path segments in `dir`. Used to apply shallower files before deeper ones. */
+  depth: number;
+  rules: Ignore;
+};
+
+/** Normalizes to '/' separators and guarantees a trailing '/' so it can be used as a path prefix. */
+const normalizeDir = (dir: string): string => {
+  const normalized = dir.replace(/\\/g, '/');
+  return (normalized === '' || normalized.endsWith('/')) ? normalized : `${normalized}/`;
+};
+
+/** Mirrors git's own parsing: blank lines and lines starting with '#' carry no pattern. */
+const hasPatterns = (gitignoreData: string): boolean => {
+  return gitignoreData.split(/\r\n|\r|\n/).some(line => {
+    const trimmed = line.trim();
+    return trimmed.length > 0 && !trimmed.startsWith('#');
+  });
+};
+
+/**
+ * Pattern matching is delegated to the `ignore` package, which implements git's own
+ * specification, so `?`, character classes, escapes and negations behave as git does.
+ */
 export default class Gitignore {
-  public rules: { pattern: RegExp, included: boolean }[];
+  private sections: Section[];
 
   constructor(gitignoreData: string, gitignoreCurrentDir = '') {
-    // console.log(`Gitignore(${gitignoreData.length}B, dir:${gitignoreCurrentDir})`)
-    gitignoreCurrentDir = gitignoreCurrentDir.replace(/\\/g, '/').replace(/[^\/]$/, '$&/');
-    this.rules = gitignoreData.split(/\r\n|\r|\n/)
-      .map(line => line.trim())
-      .filter(line => (line && line[0] !== '#'))
-      .reverse()
-      .reduce<string[][]>((lists, line) => {
-        const isNegative = line[0] === '!';
-        if (isNegative) {
-          line = line.slice(1);
-        }
-        line = line.replace(/^\\#/, '#').replace(/^\\!/, '!').replace(/\\ /g, ' ').replace(/\\$/, ' ');
-        const slashIndex = line.indexOf('/');
-        if (slashIndex === -1 || slashIndex === line.length - 1) {
-          line = gitignoreCurrentDir + '**/' + line;
-        } else if (slashIndex === 0) {
-          line = gitignoreCurrentDir + line.slice(1);
-        } else {
-          line = gitignoreCurrentDir + line;
-        }
-        // console.log('> ' + line);
-        // positive pattern: lists[even], negative pattern: lists[odd]
-        if (isNegative === (lists.length % 2 !== 0)) {
-          lists.push([]);
-        }
-        line = line.replace(/[\{\}\(\)\+\.\^\$\|]/g, '\\$&')      // escape charactors {}()+.^$|
-          .replace(/(^|[^\\])\?/g, '.')                 // '?' to '.'
-          .replace(/\/\*\*/g, '([\\\\/][^\\\\/]+)?')    // '/**'    '?' is a provisional measure.
-          .replace(/\*\*\//g, '([^\\\\/]+[\\\\/])?')    // '**/'    '?' is a provisional measure.
-          .replace(/([^\\])\*/g, '$1([^\\\\/]?)')       // '*' to any charactors
-          .replace(/\?/g, '*')                          // '?' to '*'
-          .replace(/[^\/]$/, '$&(([\\\\/].*)|$)')       // When the trailing character is not '/'.
-          .replace(/\/$/, '(([\\\\/].*)|$)');           // When the trailing character is '/'.
-        lists[lists.length - 1].push(line);
-        return lists;
-      }, [[]])
-      .map((list, index) => {
-        return { pattern: list.length > 0 ? '^((' + list.join(')|(') + '))' : '', included: index % 2 === 0 };
-      })
-      .filter(rule => rule.pattern.length > 0)
-      .map(rule => {
-        try {
-          // console.log(rule.pattern, rule.included);
-          return { pattern: new RegExp(rule.pattern), included: rule.included };
-        } catch (e) {
-          console.warn(e);
-          return undefined;
-        }
-      })
-      .filter((v): v is { pattern: RegExp, included: boolean } => !!v);
+    const dir = normalizeDir(gitignoreCurrentDir);
+    // A file with no patterns would still match every path as a prefix, so skip it entirely.
+    this.sections = hasPatterns(gitignoreData)
+      ? [{ dir, depth: (dir.match(/\//g) ?? []).length, rules: ignore().add(gitignoreData) }]
+      : [];
   }
+
+  /**
+   * Returns true when `filepath` is ignored.
+   * Sections are applied from the shallowest `.gitignore` to the deepest, so a deeper file
+   * overrides a shallower one, and within one file the last matching pattern wins.
+   */
   public includes(filepath: string): boolean {
-    filepath = filepath.replace(/\\/g, '/');
-    const rule = this.rules.find(v => v.pattern.test(filepath));
-    // if (rule) {
-    //   console.log(`##GitIgnore ${filepath}: ${rule?.pattern} ${rule?.included}`);
-    // }
-    return (rule !== undefined) && rule.included;
+    const target = filepath.replace(/\\/g, '/');
+    let ignored = false;
+    for (const section of this.sections) {
+      if (!target.startsWith(section.dir)) { continue; }
+      const relative = target.slice(section.dir.length);
+      // `ignore` rejects anything that is not a `path.relative()`d string.
+      if (!relative || !ignore.isPathValid(relative)) { continue; }
+      const result = section.rules.test(relative);
+      if (result.ignored) {
+        ignored = true;
+      } else if (result.unignored) {
+        ignored = false;
+      }
+    }
+    return ignored;
   }
+
   public excludes(filepath: string): boolean {
     return !this.includes(filepath);
   }
 
   public merge(...subrules: Gitignore[]): Gitignore {
-    const ret = new Gitignore('');
-    ret.rules = ret.rules.concat(...subrules.reverse().map(g => g.rules), this.rules);
-    return ret;
+    const merged = new Gitignore('');
+    // A stable sort keeps `.gitignore` files at the same depth in the order they were given.
+    merged.sections = [...this.sections, ...subrules.flatMap(g => g.sections)]
+      .sort((a, b) => a.depth - b.depth);
+    return merged;
   }
+
   get debugString(): string {
-    return this.rules.map(rule => `${rule.included ? 'include' : 'exclude'} : ${rule.pattern}`).join('\n');
+    return this.sections.map(s => `[${s.dir || '.'}] depth:${s.depth}`).join('\n');
   }
 }
