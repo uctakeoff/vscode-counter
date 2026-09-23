@@ -2800,4 +2800,40 @@ export const internalDefinitions: { [id: string]: Partial<LanguageConf> } = {
         blockStrings: [],
         lineStrings: []
     },
+    kotlin: {
+        aliases: [
+            'Kotlin',
+            'kotlin'
+        ],
+        filenames: [],
+        extensions: [
+            '.kt',
+            '.kts'
+        ],
+        lineComments: [
+            '//'
+        ],
+        blockComments: [
+            [
+                '/*',
+                '*/'
+            ]
+        ],
+        blockStrings: [
+            [
+                '"""',
+                '"""'
+            ]
+        ],
+        lineStrings: [
+            [
+                "'",
+                "'"
+            ],
+            [
+                '"',
+                '"'
+            ]
+        ]
+    }
 };
