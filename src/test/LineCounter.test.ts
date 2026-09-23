@@ -48,7 +48,7 @@ describe('LineCounter', () => {
       Console.WriteLine("line 4");
     `;
     const counter = new LineCounter('c#', ['//'], [['/*', '*/']], [], [['"', '"']]);
-    expect(counter.count(code)).toEqual({blank: 1, code: 4, comment: 0});
+    assert.deepEqual(counter.count(code), {blank: 1, code: 4, comment: 0});
   });
 
   it('Python block comments not being detected #110', () => {

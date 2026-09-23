@@ -1,0 +1,17 @@
+{
+	// tsc -p ./ (ビルド) からは除外されるディレクトリなので、
+	// エディタ/eslint が型解決できるよう個別に定義する。
+	"extends": "../../tsconfig.json",
+	"compilerOptions": {
+		"noEmit": true,
+		"types": [
+			"node",
+			"vscode",
+			"mocha" // suite() / test() のグローバル
+		]
+	},
+	"include": [
+		"**/*.ts"
+	],
+	"exclude": []
+}

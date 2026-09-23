@@ -1,0 +1,23 @@
+{
+	// tsc -p ./ (ビルド) からは除外されるディレクトリなので、
+	// エディタ/eslint が型解決できるよう個別に定義する。
+	// vitest は ESM 専用パッケージなので、ビルド用の module: Node16 ではなく
+	// 実際の実行形態に合わせた ESNext / Bundler で解決する。
+	"extends": "../../tsconfig.json",
+	"compilerOptions": {
+		"noEmit": true,
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"types": [
+			"node"
+		],
+		"lib": [
+			"ES2022",
+			"DOM" // vite の型定義が WebSocket などを参照するため
+		]
+	},
+	"include": [
+		"**/*.ts"
+	],
+	"exclude": []
+}

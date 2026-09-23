@@ -8,6 +8,12 @@
 		],
 		"sourceMap": true,
 		"rootDir": "src",
+		// TypeScript 6.0 から node_modules/@types/* の暗黙の取り込みが廃止されたため明示する。
+		// 未指定だと TS 6 系 (VS Code 同梱の tsserver) で 'path' / 'util' などが解決できない。
+		"types": [
+			"node",
+			"vscode"
+		],
 		"strict": true, /* enable all strict type-checking options */
 		/* Additional Checks */
 		// "noImplicitReturns": true, /* Report error when not all code paths in function return a value. */
