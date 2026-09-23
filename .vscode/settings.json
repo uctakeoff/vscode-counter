@@ -7,5 +7,10 @@
 		"out": true // set this to false to include "out" folder in search results
 	},
 	// Turn off tsc task auto detection since we have the necessary tasks as npm scripts
-	"typescript.tsc.autoDetect": "off"
+	"typescript.tsc.autoDetect": "off",
+	// Use the workspace TypeScript instead of the one bundled with VS Code.
+	// Without this the editor and `npm run compile` can report different errors
+	// whenever the two versions drift apart.
+	"typescript.tsdk": "node_modules/typescript/lib",
+	"typescript.enablePromptUseWorkspaceTsdk": true
 }
