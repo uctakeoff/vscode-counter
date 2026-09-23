@@ -6,6 +6,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [Unreleased]
 
 * workspace counter in status bar.
+- Added: Kotlin language support (#129)
 
 ## [3.7.2]
 ### Changed
