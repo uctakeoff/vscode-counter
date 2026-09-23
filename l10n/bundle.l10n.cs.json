@@ -1,0 +1,23 @@
+{
+  "\"{0}\" failed.": "Operace \"{0}\" se nezdařila.",
+  "loadLanguageConfigurations failed. {0}": "Načtení konfigurací jazyků se nezdařilo. {0}",
+  "VS Code Counter : available all {0} languages.": "VS Code Counter: celkem je k dispozici {0} jazyků.",
+  "Input Directory Path": "Zadejte cestu k adresáři",
+  "Input Directory Path.": "Zadejte cestu k adresáři.",
+  "Preparing...": "Příprava...",
+  "Totaling...": "Sčítání...",
+  "There was no target file.": "Nebyl nalezen žádný cílový soubor.",
+  "workspace not open.": "Není otevřený žádný pracovní prostor.",
+  "Selected": "Výběr",
+  "Unsupported": "Nepodporováno",
+  "{0}code": "{0} řádek kódu",
+  "{0}codes": "{0} řádků kódu",
+  "{0}comment": "{0} komentář",
+  "{0}comments": "{0} komentářů",
+  "{0}blank": "{0} prázdný řádek",
+  "{0}blanks": "{0} prázdných řádků",
+  "{0}word": "{0} slovo",
+  "{0}words": "{0} slov",
+  "{0}char": "{0} znak",
+  "{0}chars": "{0} znaků"
+}

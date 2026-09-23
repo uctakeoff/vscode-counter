@@ -1,0 +1,23 @@
+{
+  "\"{0}\" failed.": "A(z) \"{0}\" művelet sikertelen volt.",
+  "loadLanguageConfigurations failed. {0}": "A nyelvi konfigurációk betöltése sikertelen volt. {0}",
+  "VS Code Counter : available all {0} languages.": "VS Code Counter: összesen {0} nyelv érhető el.",
+  "Input Directory Path": "Adja meg a könyvtár elérési útját",
+  "Input Directory Path.": "Adja meg a könyvtár elérési útját.",
+  "Preparing...": "Előkészítés...",
+  "Totaling...": "Összesítés...",
+  "There was no target file.": "Nem található célfájl.",
+  "workspace not open.": "Nincs megnyitva munkaterület.",
+  "Selected": "Kijelölve",
+  "Unsupported": "Nem támogatott",
+  "{0}code": "{0} kódsor",
+  "{0}codes": "{0} kódsor",
+  "{0}comment": "{0} megjegyzéssor",
+  "{0}comments": "{0} megjegyzéssor",
+  "{0}blank": "{0} üres sor",
+  "{0}blanks": "{0} üres sor",
+  "{0}word": "{0} szó",
+  "{0}words": "{0} szó",
+  "{0}char": "{0} karakter",
+  "{0}chars": "{0} karakter"
+}

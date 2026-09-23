@@ -280,6 +280,7 @@
     }
   },
   "main": "./out/extension.js",
+  "l10n": "./l10n",
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",

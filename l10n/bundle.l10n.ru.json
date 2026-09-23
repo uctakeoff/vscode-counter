@@ -1,0 +1,23 @@
+{
+  "\"{0}\" failed.": "Сбой \"{0}\".",
+  "loadLanguageConfigurations failed. {0}": "Не удалось загрузить конфигурации языков. {0}",
+  "VS Code Counter : available all {0} languages.": "VS Code Counter: всего доступно языков — {0}.",
+  "Input Directory Path": "Введите путь к каталогу",
+  "Input Directory Path.": "Введите путь к каталогу.",
+  "Preparing...": "Подготовка...",
+  "Totaling...": "Подведение итогов...",
+  "There was no target file.": "Целевые файлы не найдены.",
+  "workspace not open.": "Рабочая область не открыта.",
+  "Selected": "Выделено",
+  "Unsupported": "Не поддерживается",
+  "{0}code": "{0} строка кода",
+  "{0}codes": "{0} строк кода",
+  "{0}comment": "{0} комментарий",
+  "{0}comments": "{0} комментариев",
+  "{0}blank": "{0} пустая строка",
+  "{0}blanks": "{0} пустых строк",
+  "{0}word": "{0} слово",
+  "{0}words": "{0} слов",
+  "{0}char": "{0} символ",
+  "{0}chars": "{0} символов"
+}

@@ -1,0 +1,23 @@
+{
+  "\"{0}\" failed.": "\"{0}\" 失敗。",
+  "loadLanguageConfigurations failed. {0}": "載入語言設定失敗。{0}",
+  "VS Code Counter : available all {0} languages.": "VS Code Counter：共有 {0} 種可用的語言。",
+  "Input Directory Path": "輸入資料夾路徑",
+  "Input Directory Path.": "請輸入資料夾路徑。",
+  "Preparing...": "準備中...",
+  "Totaling...": "彙總中...",
+  "There was no target file.": "沒有找到目標檔案。",
+  "workspace not open.": "未開啟工作區。",
+  "Selected": "已選取",
+  "Unsupported": "不支援",
+  "{0}code": "{0}行程式碼",
+  "{0}codes": "{0}行程式碼",
+  "{0}comment": "{0}行註解",
+  "{0}comments": "{0}行註解",
+  "{0}blank": "{0}空行",
+  "{0}blanks": "{0}空行",
+  "{0}word": "{0}個字詞",
+  "{0}words": "{0}個字詞",
+  "{0}char": "{0}個字元",
+  "{0}chars": "{0}個字元"
+}

@@ -1,0 +1,23 @@
+{
+  "\"{0}\" failed.": "Operacja \"{0}\" nie powiodła się.",
+  "loadLanguageConfigurations failed. {0}": "Nie można załadować konfiguracji języków. {0}",
+  "VS Code Counter : available all {0} languages.": "VS Code Counter: dostępnych języków łącznie: {0}.",
+  "Input Directory Path": "Wprowadź ścieżkę katalogu",
+  "Input Directory Path.": "Wprowadź ścieżkę katalogu.",
+  "Preparing...": "Przygotowywanie...",
+  "Totaling...": "Sumowanie...",
+  "There was no target file.": "Nie znaleziono żadnego pliku docelowego.",
+  "workspace not open.": "Nie otwarto obszaru roboczego.",
+  "Selected": "Zaznaczenie",
+  "Unsupported": "Nieobsługiwane",
+  "{0}code": "{0} wiersz kodu",
+  "{0}codes": "{0} wierszy kodu",
+  "{0}comment": "{0} komentarz",
+  "{0}comments": "{0} komentarzy",
+  "{0}blank": "{0} pusty wiersz",
+  "{0}blanks": "{0} pustych wierszy",
+  "{0}word": "{0} słowo",
+  "{0}words": "{0} słów",
+  "{0}char": "{0} znak",
+  "{0}chars": "{0} znaków"
+}

@@ -1,0 +1,23 @@
+{
+  "\"{0}\" failed.": "\"{0}\" başarısız oldu.",
+  "loadLanguageConfigurations failed. {0}": "Dil yapılandırmaları yüklenemedi. {0}",
+  "VS Code Counter : available all {0} languages.": "VS Code Counter: toplam {0} dil kullanılabilir.",
+  "Input Directory Path": "Dizin yolunu girin",
+  "Input Directory Path.": "Dizin yolunu girin.",
+  "Preparing...": "Hazırlanıyor...",
+  "Totaling...": "Toplanıyor...",
+  "There was no target file.": "Hedef dosya bulunamadı.",
+  "workspace not open.": "Açık bir çalışma alanı yok.",
+  "Selected": "Seçili",
+  "Unsupported": "Desteklenmiyor",
+  "{0}code": "{0} kod satırı",
+  "{0}codes": "{0} kod satırı",
+  "{0}comment": "{0} açıklama satırı",
+  "{0}comments": "{0} açıklama satırı",
+  "{0}blank": "{0} boş satır",
+  "{0}blanks": "{0} boş satır",
+  "{0}word": "{0} sözcük",
+  "{0}words": "{0} sözcük",
+  "{0}char": "{0} karakter",
+  "{0}chars": "{0} karakter"
+}

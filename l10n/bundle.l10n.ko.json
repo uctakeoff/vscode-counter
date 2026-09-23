@@ -1,0 +1,23 @@
+{
+  "\"{0}\" failed.": "\"{0}\"이(가) 실패했습니다.",
+  "loadLanguageConfigurations failed. {0}": "언어 구성을 불러오지 못했습니다. {0}",
+  "VS Code Counter : available all {0} languages.": "VS Code Counter : 사용 가능한 언어는 모두 {0}개입니다.",
+  "Input Directory Path": "디렉터리 경로 입력",
+  "Input Directory Path.": "디렉터리 경로를 입력하세요.",
+  "Preparing...": "준비 중...",
+  "Totaling...": "집계 중...",
+  "There was no target file.": "대상 파일이 없습니다.",
+  "workspace not open.": "작업 영역이 열려 있지 않습니다.",
+  "Selected": "선택 영역",
+  "Unsupported": "지원되지 않음",
+  "{0}code": "{0}코드줄",
+  "{0}codes": "{0}코드줄",
+  "{0}comment": "{0}주석줄",
+  "{0}comments": "{0}주석줄",
+  "{0}blank": "{0}빈줄",
+  "{0}blanks": "{0}빈줄",
+  "{0}word": "{0}단어",
+  "{0}words": "{0}단어",
+  "{0}char": "{0}자",
+  "{0}chars": "{0}자"
+}

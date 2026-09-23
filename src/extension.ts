@@ -32,7 +32,7 @@ const registerCommand = (command: string, callback: (...args: any[]) => Promise<
         try {
             await callback(...args);
         } catch (e: any) {
-            showError(`"${command}" failed.`, e.message);
+            showError(vscode.l10n.t('"{0}" failed.', command), e.message);
         }
     }, thisArg);
 };
@@ -103,6 +103,16 @@ const pathBasedName = (uri: vscode.Uri) => {
     // return path.replace(/[^\w\-~\.]+/g, '-');
     return path.replace(/[:\/\\?#\[\]\@]+/g, '-');
 };
+// Unit labels for the real-time counter in the status bar.
+// `vscode.l10n.t` has no plural support, so each unit supplies its own singular and plural message.
+const countUnitLabels = {
+    code: (n: number) => n === 1 ? vscode.l10n.t('{0}code', n) : vscode.l10n.t('{0}codes', n),
+    comment: (n: number) => n === 1 ? vscode.l10n.t('{0}comment', n) : vscode.l10n.t('{0}comments', n),
+    blank: (n: number) => n === 1 ? vscode.l10n.t('{0}blank', n) : vscode.l10n.t('{0}blanks', n),
+    word: (n: number) => n === 1 ? vscode.l10n.t('{0}word', n) : vscode.l10n.t('{0}words', n),
+    char: (n: number) => n === 1 ? vscode.l10n.t('{0}char', n) : vscode.l10n.t('{0}chars', n),
+};
+
 class CodeCounterController {
     private codeCounter_: LineCounterTable | null = null;
     private statusBarItem: vscode.StatusBarItem | null = null;
@@ -227,7 +237,7 @@ class CodeCounterController {
                     if (uri) {return await readJsonFile<{ [key: string]: Partial<LanguageConf> }>(uri, {});}
             }
         } catch (e: any) {
-            showError(`loadLanguageConfigurations failed. ${e.message}`);
+            showError(vscode.l10n.t('loadLanguageConfigurations failed. {0}', e.message));
         }
         return {};
     }
@@ -252,7 +262,7 @@ class CodeCounterController {
         c.entries().forEach((lang, id) => {
             this.toOutputChannel(`${id} : aliases[${lang.aliases}], extensions[${lang.extensions}], filenames:[${lang.filenames}]`);
         });
-        this.toOutputChannel(`VS Code Counter : available all ${c.entries().size} languages.`);
+        this.toOutputChannel(vscode.l10n.t('VS Code Counter : available all {0} languages.', c.entries().size));
     }
 
     public async countLinesInDirectory(targetDir: vscode.Uri | undefined) {
@@ -262,8 +272,8 @@ class CodeCounterController {
         } else {
             const option = {
                 value: workDir.uri.toString(true),
-                placeHolder: 'Input Directory Path',
-                prompt: 'Input Directory Path. '
+                placeHolder: vscode.l10n.t('Input Directory Path'),
+                prompt: vscode.l10n.t('Input Directory Path.')
             };
             const uri = await vscode.window.showInputBox(option);
             if (uri) {
@@ -280,7 +290,7 @@ class CodeCounterController {
         const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
         try {
             statusBar.show();
-            statusBar.text = 'VSCodeCounter: Preparing...';
+            statusBar.text = `${EXTENSION_NAME}: ${vscode.l10n.t('Preparing...')}`;
 
             log(`include : "${this.conf.include}"`);
             log(`exclude : "${this.conf.exclude}"`);
@@ -301,12 +311,12 @@ class CodeCounterController {
                 fileEncoding: this.conf.encoding,
                 ignoreUnsupportedFile: this.conf.ignoreUnsupportedFile,
                 includeIncompleteLine: this.conf.includeIncompleteLine,
-                showStatus: (msg: string) => statusBar.text = `VSCodeCounter: ${msg}`
+                showStatus: (msg: string) => statusBar.text = `${EXTENSION_NAME}: ${msg}`
             });
             if (results.length <= 0) {
-                throw Error('There was no target file.');
+                throw Error(vscode.l10n.t('There was no target file.'));
             }
-            statusBar.text = 'VSCodeCounter: Totaling...';
+            statusBar.text = `${EXTENSION_NAME}: ${vscode.l10n.t('Totaling...')}`;
 
             await vscode.workspace.fs.createDirectory(outputDir);
             const regex = /^\d\d\d\d-\d\d-\d\d\_\d\d-\d\d-\d\d$/;
@@ -336,9 +346,9 @@ class CodeCounterController {
         const lineCounter = doc ? c.getCounter(doc.uri.fsPath, doc.languageId) : undefined;
         if (!this.statusBarItem) {return;}
         const texts: string[] = [];
-        const addText = (c: number|undefined, unit: string) => {
+        const addText = (c: number|undefined, unit: keyof typeof countUnitLabels) => {
             if (c !== undefined) {
-                texts.push(`${c}${unit}${c === 1 ? '' : 's'}`);
+                texts.push(countUnitLabels[unit](c));
             }
         };
         if (doc) {
@@ -356,7 +366,7 @@ class CodeCounterController {
                 const words = docTexts.map(d => countWords(d, vscode.env.language)).reduce((v, s) => v + s);
                 const result = !lineCounter ? undefined : docTexts.map(d => lineCounter.count(d, true))
                     .reduce((prev, cur) => prev.add(cur), new Count());
-                texts.push('Selected');
+                texts.push(vscode.l10n.t('Selected'));
                 addText(result?.code, 'code');
                 addText(result?.comment, 'comment');
                 addText(result?.blank, 'blank');
@@ -366,7 +376,7 @@ class CodeCounterController {
         }
         this.statusBarItem.show();
         // this.statusBarItem.text = text || `${EXTENSION_NAME}: Unsupported`;
-        this.statusBarItem.text = `$(pencil)${texts.join(' ') || 'Unsupported'}`;
+        this.statusBarItem.text = `$(pencil)${texts.join(' ') || vscode.l10n.t('Unsupported')}`;
     }
 
     private toOutputChannel(text: string) {

@@ -32,7 +32,7 @@ export const currentWorkspaceFolder = async () => {
         const folder = await vscode.window.showWorkspaceFolderPick();
         if (folder) {return folder;}
     }
-    throw Error('workspace not open.');
+    throw Error(vscode.l10n.t('workspace not open.'));
 };
 
 export const buildUri = (uri: vscode.Uri, ...uriOrPaths: string[]) => {
