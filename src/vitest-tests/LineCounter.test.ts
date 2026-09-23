@@ -34,11 +34,11 @@ describe('Extension activation', () => {
         )";
       }
     `;
-    const counter = new LineCounter('cpp', ["//"], [['/*', '*/']], [['R"(', ')"']], [['"', '"']]);
+    const counter = new LineCounter('cpp', ['//'], [['/*', '*/']], [['R"(', ')"']], [['"', '"']]);
     expect(counter.count(code)).toEqual({blank: 4, code: 15, comment: 11});
 
     // 実際のデータ
-    const counter2 = new LineCounter('cpp', ["//"], [['/*', '*/']], [['R"(', ')"']], [["'","'"],["\"","\""],["/*","*/"],["/**"," */"]]);
+    const counter2 = new LineCounter('cpp', ['//'], [['/*', '*/']], [['R"(', ')"']], [["'","'"],['"','"'],['/*','*/'],['/**',' */']]);
     expect(counter2.count(code)).toEqual({blank: 4, code: 15, comment: 11});
   });
 
@@ -49,7 +49,7 @@ describe('Extension activation', () => {
       Console.WriteLine("line 3");
       Console.WriteLine("line 4");
     `;
-    const counter = new LineCounter('c#', ["//"], [['/*', '*/']], [], [['"', '"']]);
+    const counter = new LineCounter('c#', ['//'], [['/*', '*/']], [], [['"', '"']]);
     expect(counter.count(code)).toEqual({blank: 1, code: 4, comment: 0});
   });
 
@@ -83,7 +83,7 @@ def __main__():
         it should be counted as code.
         """)
 `;
-    const counter = new LineCounter('python', ["#"], [['"""', '"""']], [['"""', '"""']], [['"', '"']], true);
+    const counter = new LineCounter('python', ['#'], [['"""', '"""']], [['"""', '"""']], [['"', '"']], true);
     expect(counter.count(code)).toEqual({blank: 8, code: 11, comment: 9});
 
 

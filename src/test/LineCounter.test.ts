@@ -36,7 +36,7 @@ describe('LineCounter', () => {
         )";
       }
     `;
-    const counter = new LineCounter('cpp', ["//"], [['/*', '*/']], [['R"(', ')"']], [['"', '"']]);
+    const counter = new LineCounter('cpp', ['//'], [['/*', '*/']], [['R"(', ')"']], [['"', '"']]);
     assert.deepEqual(counter.count(code), {blank: 4, code: 15, comment: 7});
   });
 
@@ -47,7 +47,7 @@ describe('LineCounter', () => {
       Console.WriteLine("line 3");
       Console.WriteLine("line 4");
     `;
-    const counter = new LineCounter('c#', ["//"], [['/*', '*/']], [], [['"', '"']]);
+    const counter = new LineCounter('c#', ['//'], [['/*', '*/']], [], [['"', '"']]);
     expect(counter.count(code)).toEqual({blank: 1, code: 4, comment: 0});
   });
 
@@ -81,7 +81,7 @@ def __main__():
         it should be counted as code.
         """)
 `;
-    const counter = new LineCounter('python', ["#"], [['"""', '"""']], [['"""', '"""']], [['"', '"']], true);
+    const counter = new LineCounter('python', ['#'], [['"""', '"""']], [['"""', '"""']], [['"', '"']], true);
     assert.deepEqual(counter.count(code), {blank: 8, code: 11, comment: 9});
   });
 });

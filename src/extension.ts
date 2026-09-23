@@ -59,7 +59,7 @@ type LanguageLocation = 'global settings' | 'workspace settings' | 'output direc
 
 const loadConfig = () => {
     const conf = vscode.workspace.getConfiguration(CONFIGURATION_SECTION);
-    const confFiles = vscode.workspace.getConfiguration("files", null);
+    const confFiles = vscode.workspace.getConfiguration('files', null);
 
     const include = conf.get<string[]>('include', ['**/*']);
     const exclude = conf.get<string[]>('exclude', []);
@@ -124,12 +124,12 @@ class CodeCounterController {
     private async getLangageConfUri() {
         const { workDir, outputDir } = await this.getWorkDirs();
         switch (this.conf.saveLocation) {
-            case "output directory":
+            case 'output directory':
                 return vscode.Uri.joinPath(outputDir, 'languages.json');
-            case "use languageConfUri":
+            case 'use languageConfUri':
                 return buildUri(workDir.uri, this.conf.languageConfUri);
-            case "global settings":
-            case "workspace settings":
+            case 'global settings':
+            case 'workspace settings':
             default: break;
         }
         return undefined;
@@ -218,8 +218,8 @@ class CodeCounterController {
     public async loadLanguageConfigurations(): Promise<{ [key: string]: Partial<LanguageConf> }> {
         try {
             switch (this.conf.saveLocation) {
-                case "global settings":
-                case "workspace settings":
+                case 'global settings':
+                case 'workspace settings':
                     return this.conf.languages;
                 default:
                     const uri = await this.getLangageConfUri();
@@ -236,9 +236,9 @@ class CodeCounterController {
         const c = await this.getCodeCounter();
         const langs = mapToObject(c.entries());
         switch (this.conf.saveLocation) {
-            case "global settings":
+            case 'global settings':
                 return this.conf.configuration.update('languages', langs, vscode.ConfigurationTarget.Global);
-            case "workspace settings":
+            case 'workspace settings':
                 return this.conf.configuration.update('languages', langs, vscode.ConfigurationTarget.Workspace);
             default:
                 const uri = await this.getLangageConfUri();
@@ -262,8 +262,8 @@ class CodeCounterController {
         } else {
             const option = {
                 value: workDir.uri.toString(true),
-                placeHolder: "Input Directory Path",
-                prompt: "Input Directory Path. "
+                placeHolder: 'Input Directory Path',
+                prompt: 'Input Directory Path. '
             };
             const uri = await vscode.window.showInputBox(option);
             if (uri) {
@@ -280,7 +280,7 @@ class CodeCounterController {
         const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
         try {
             statusBar.show();
-            statusBar.text = `VSCodeCounter: Preparing...`;
+            statusBar.text = 'VSCodeCounter: Preparing...';
 
             log(`include : "${this.conf.include}"`);
             log(`exclude : "${this.conf.exclude}"`);
@@ -288,7 +288,7 @@ class CodeCounterController {
                 `{${this.conf.include}}`,
                 `{${this.conf.exclude},${vscode.workspace.asRelativePath(outputDir)}}`,
                 this.conf.maxFindFiles);
-            let targetFiles = files.filter(uri => !path.relative(targetUri.path, uri.path).startsWith(".."));
+            let targetFiles = files.filter(uri => !path.relative(targetUri.path, uri.path).startsWith('..'));
             if (this.conf.useGitignore) {
                 log(`target : ${targetFiles.length} files -> use .gitignore`);
                 const gitignores = await loadGitIgnore(this.conf.maxFindFiles);
@@ -304,9 +304,9 @@ class CodeCounterController {
                 showStatus: (msg: string) => statusBar.text = `VSCodeCounter: ${msg}`
             });
             if (results.length <= 0) {
-                throw Error(`There was no target file.`);
+                throw Error('There was no target file.');
             }
-            statusBar.text = `VSCodeCounter: Totaling...`;
+            statusBar.text = 'VSCodeCounter: Totaling...';
 
             await vscode.workspace.fs.createDirectory(outputDir);
             const regex = /^\d\d\d\d-\d\d-\d\d\_\d\d-\d\d-\d\d$/;
@@ -543,7 +543,7 @@ const previewFiles = new Map<string, string>([
 ]);
 const outputResults = async (date: Date, targetDirUri: vscode.Uri, results: Result[], outputDir: vscode.Uri, prevOutputDir: vscode.Uri | undefined, conf: Config) => {
     await vscode.workspace.fs.createDirectory(outputDir);
-    writeTextFile(vscode.Uri.joinPath(outputDir, `results.json`), resultsToJson(results));
+    writeTextFile(vscode.Uri.joinPath(outputDir, 'results.json'), resultsToJson(results));
 
     const resultTable = new ResultFormatter(targetDirUri, results, conf);
     log(`OutputDir : ${outputDir}, count ${results.length} files`);
@@ -569,7 +569,7 @@ const outputResults = async (date: Date, targetDirUri: vscode.Uri, results: Resu
                 }
             });
         } catch (e: any) {
-            log(`failed to access previous "results.json"`);
+            log('failed to access previous "results.json"');
             diffs.length = 0;
         }
     }
@@ -682,7 +682,7 @@ class ResultFormatter {
         const directLevelResultTable = new Map<string, Statistics>();
         results.forEach((result) => {
             let parent = path.dirname(path.relative(this.targetDirUri.fsPath, result.filename));
-            getOrSet(directLevelResultTable, parent, () => new Statistics(parent + " (Files)")).add(result);
+            getOrSet(directLevelResultTable, parent, () => new Statistics(parent + ' (Files)')).add(result);
             while (parent.length >= 0) {
                 getOrSet(this.dirResultTable, parent, () => new Statistics(parent)).add(result);
                 const p = path.dirname(parent);

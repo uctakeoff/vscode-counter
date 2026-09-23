@@ -149,7 +149,7 @@ export const showTextFile = async (uri: vscode.Uri) => {
 };
 export const showTextPreview = async (uri: vscode.Uri) => {
     if (uri.path.endsWith('.md')) {
-        await vscode.commands.executeCommand("markdown.showPreview", uri);
+        await vscode.commands.executeCommand('markdown.showPreview', uri);
     } else {
         await showTextFile(uri);
     }
