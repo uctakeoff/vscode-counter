@@ -494,50 +494,40 @@ const appendAll = (langs: Map<string, LanguageConf>, defs: { [id: string]: Parti
     Object.entries(defs).forEach(v => append(langs, v[0], v[1]));
 };
 
-const collectLanguageConfigurations = (langs: Map<string, LanguageConf>): Promise<Map<string, LanguageConf>> => {
-    return new Promise((resolve: (values: Map<string, LanguageConf>) => void, reject: (reason: any) => void) => {
-        if (vscode.extensions.all.length <= 0) {
-            resolve(langs);
-        } else {
-            let finishedCount = 0;
-            let totalCount = 0;
-            vscode.extensions.all.forEach(ex => {
-                const languages = ex.packageJSON.contributes?.languages as VscodeLanguage[] ?? undefined;
-                if (languages) {
-                    totalCount += languages.length;
-                    languages.forEach(async (l) => {
-                        try {
-                            const langExt = append(langs, l.id, l);
-                            if (l.configuration) {
-                                const confUrl = vscode.Uri.file(path.join(ex.extensionPath, l.configuration));
-                                const langConf = await readJsonFile<VscodeLanguageConfiguration>(confUrl, {});
-                                // log(`"${confUrl.fsPath}" :${l.id}\n aliases:${l.aliases}\n extensions:${l.extensions}\n filenames:${l.filenames}`, l);
-                                if (langConf.comments) {
-                                    // The contents of language-configuration.json are not guaranteed to follow the type definition.
-                                    // (ex. `"blockComment": [["<!--", "-->"], ["{#", "#}"]]`) #119
-                                    langExt.lineComments.push(...toStrings(langConf.comments.lineComment));
-                                    langExt.blockComments.push(...toStringPairs(langConf.comments.blockComment));
-                                }
-                                if (Array.isArray(langConf.autoClosingPairs)) {
-                                    const maybeString = langConf.autoClosingPairs
-                                        .map(v => Array.isArray(v) ? v : [v?.open, v?.close])
-                                        .filter((v): v is [string, string] => typeof v[0] === 'string' && typeof v[1] === 'string' && !'[{('.includes(v[0]));
-                                    // log(`${l.id}`, langConf.autoClosingPairs, maybeString);
-                                    langExt.lineStrings.push(...maybeString);
-                                }
-                            }
-                        } catch (reason: any) {
-                            log(`error ${reason}`);
-                        } finally {
-                            if (++finishedCount >= totalCount) {
-                                resolve(langs);
-                            }
-                        }
-                    });
-                }
-            });
-        }
+const collectLanguageConfigurations = async (langs: Map<string, LanguageConf>): Promise<Map<string, LanguageConf>> => {
+    // Flatten first so that every contribution is turned into a pending job before any of them is awaited.
+    // Counting finished jobs against a running total resolved too early for languages without a
+    // `configuration` file (their handler never suspends), which dropped every later contribution. (#108)
+    const contributions = vscode.extensions.all.flatMap(ex => {
+        const languages = ex.packageJSON?.contributes?.languages as unknown;
+        return Array.isArray(languages) ? (languages as VscodeLanguage[]).map(l => ({ ex, l })) : [];
     });
+    await Promise.all(contributions.map(async ({ ex, l }) => {
+        try {
+            const langExt = append(langs, l.id, l);
+            if (l.configuration) {
+                const confUrl = vscode.Uri.file(path.join(ex.extensionPath, l.configuration));
+                const langConf = await readJsonFile<VscodeLanguageConfiguration>(confUrl, {});
+                // log(`"${confUrl.fsPath}" :${l.id}\n aliases:${l.aliases}\n extensions:${l.extensions}\n filenames:${l.filenames}`, l);
+                if (langConf.comments) {
+                    // The contents of language-configuration.json are not guaranteed to follow the type definition.
+                    // (ex. `"blockComment": [["<!--", "-->"], ["{#", "#}"]]`) #119
+                    langExt.lineComments.push(...toStrings(langConf.comments.lineComment));
+                    langExt.blockComments.push(...toStringPairs(langConf.comments.blockComment));
+                }
+                if (Array.isArray(langConf.autoClosingPairs)) {
+                    const maybeString = langConf.autoClosingPairs
+                        .map(v => Array.isArray(v) ? v : [v?.open, v?.close])
+                        .filter((v): v is [string, string] => typeof v[0] === 'string' && typeof v[1] === 'string' && !'[{('.includes(v[0]));
+                    // log(`${l.id}`, langConf.autoClosingPairs, maybeString);
+                    langExt.lineStrings.push(...maybeString);
+                }
+            }
+        } catch (reason: any) {
+            log(`error ${reason}`);
+        }
+    }));
+    return langs;
 };
 
 

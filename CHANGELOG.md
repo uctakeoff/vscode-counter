@@ -4,6 +4,9 @@ All notable changes to the "vscode-counter" extension will be documented in this
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
 ## [Unreleased]
+### Fixed
+- Language configurations contributed by installed extensions could be dropped. The collection step resolved as soon as a running counter reached the total contribution count, which could happen while contributions were still being enumerated, so the comment and string markers read from each extension's `language-configuration.json` were lost.
+- The same collection step never finished when no installed extension contributed a language, leaving the counter stuck at "Preparing...".
 
 ## [3.8.0]
 ### Added
