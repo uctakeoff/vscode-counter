@@ -2835,5 +2835,1924 @@ export const internalDefinitions: { [id: string]: Partial<LanguageConf> } = {
                 '"'
             ]
         ]
+    },
+    vue: {
+        aliases: [
+            'Vue',
+            'vue'
+        ],
+        filenames: [],
+        extensions: [
+            '.vue'
+        ],
+        lineComments: [
+            '//'
+        ],
+        blockComments: [
+            [
+                '<!--',
+                '-->'
+            ],
+            [
+                '/*',
+                '*/'
+            ]
+        ],
+        blockStrings: [
+            [
+                '`',
+                '`'
+            ]
+        ],
+        lineStrings: [
+            [
+                "'",
+                "'"
+            ],
+            [
+                '"',
+                '"'
+            ]
+        ]
+    },
+    svelte: {
+        aliases: [
+            'Svelte',
+            'svelte'
+        ],
+        filenames: [],
+        extensions: [
+            '.svelte'
+        ],
+        lineComments: [
+            '//'
+        ],
+        blockComments: [
+            [
+                '<!--',
+                '-->'
+            ],
+            [
+                '/*',
+                '*/'
+            ]
+        ],
+        blockStrings: [
+            [
+                '`',
+                '`'
+            ]
+        ],
+        lineStrings: [
+            [
+                "'",
+                "'"
+            ],
+            [
+                '"',
+                '"'
+            ]
+        ]
+    },
+    astro: {
+        aliases: [
+            'Astro',
+            'astro'
+        ],
+        filenames: [],
+        extensions: [
+            '.astro'
+        ],
+        lineComments: [
+            '//'
+        ],
+        blockComments: [
+            [
+                '<!--',
+                '-->'
+            ],
+            [
+                '/*',
+                '*/'
+            ]
+        ],
+        blockStrings: [
+            [
+                '`',
+                '`'
+            ]
+        ],
+        lineStrings: [
+            [
+                "'",
+                "'"
+            ],
+            [
+                '"',
+                '"'
+            ]
+        ]
+    },
+    sass: {
+        aliases: [
+            'Sass',
+            'sass'
+        ],
+        filenames: [],
+        extensions: [
+            '.sass'
+        ],
+        lineComments: [
+            '//'
+        ],
+        blockComments: [
+            [
+                '/*',
+                '*/'
+            ]
+        ],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    stylus: {
+        aliases: [
+            'Stylus',
+            'stylus',
+            'styl'
+        ],
+        filenames: [],
+        extensions: [
+            '.styl',
+            '.stylus'
+        ],
+        lineComments: [
+            '//'
+        ],
+        blockComments: [
+            [
+                '/*',
+                '*/'
+            ]
+        ],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    liquid: {
+        aliases: [
+            'Liquid',
+            'liquid'
+        ],
+        filenames: [],
+        extensions: [
+            '.liquid'
+        ],
+        lineComments: [],
+        blockComments: [
+            [
+                '{% comment %}',
+                '{% endcomment %}'
+            ],
+            [
+                '{%- comment -%}',
+                '{%- endcomment -%}'
+            ],
+            [
+                '<!--',
+                '-->'
+            ]
+        ],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    twig: {
+        aliases: [
+            'Twig',
+            'twig'
+        ],
+        filenames: [],
+        extensions: [
+            '.twig'
+        ],
+        lineComments: [],
+        blockComments: [
+            [
+                '{#',
+                '#}'
+            ],
+            [
+                '<!--',
+                '-->'
+            ]
+        ],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    jinja: {
+        aliases: [
+            'Jinja',
+            'jinja'
+        ],
+        filenames: [],
+        extensions: [
+            '.j2',
+            '.jinja',
+            '.jinja2'
+        ],
+        lineComments: [],
+        blockComments: [
+            [
+                '{#',
+                '#}'
+            ],
+            [
+                '<!--',
+                '-->'
+            ]
+        ],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    blade: {
+        aliases: [
+            'Blade',
+            'blade'
+        ],
+        filenames: [],
+        extensions: [
+            '.blade.php'
+        ],
+        lineComments: [
+            '//'
+        ],
+        blockComments: [
+            [
+                '{{--',
+                '--}}'
+            ],
+            [
+                '<!--',
+                '-->'
+            ],
+            [
+                '/*',
+                '*/'
+            ]
+        ],
+        blockStrings: [],
+        lineStrings: [
+            [
+                "'",
+                "'"
+            ],
+            [
+                '"',
+                '"'
+            ]
+        ]
+    },
+    scala: {
+        aliases: [
+            'Scala',
+            'scala'
+        ],
+        filenames: [],
+        extensions: [
+            '.scala',
+            '.sc',
+            '.sbt'
+        ],
+        lineComments: [
+            '//'
+        ],
+        blockComments: [
+            [
+                '/*',
+                '*/'
+            ]
+        ],
+        blockStrings: [
+            [
+                '"""',
+                '"""'
+            ]
+        ],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    haskell: {
+        aliases: [
+            'Haskell',
+            'haskell'
+        ],
+        filenames: [],
+        extensions: [
+            '.hs',
+            '.lhs',
+            '.hs-boot'
+        ],
+        lineComments: [
+            '--'
+        ],
+        blockComments: [
+            [
+                '{-',
+                '-}'
+            ]
+        ],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    elm: {
+        aliases: [
+            'Elm',
+            'elm'
+        ],
+        filenames: [],
+        extensions: [
+            '.elm'
+        ],
+        lineComments: [
+            '--'
+        ],
+        blockComments: [
+            [
+                '{-',
+                '-}'
+            ]
+        ],
+        blockStrings: [
+            [
+                '"""',
+                '"""'
+            ]
+        ],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    purescript: {
+        aliases: [
+            'PureScript',
+            'purescript'
+        ],
+        filenames: [],
+        extensions: [
+            '.purs'
+        ],
+        lineComments: [
+            '--'
+        ],
+        blockComments: [
+            [
+                '{-',
+                '-}'
+            ]
+        ],
+        blockStrings: [
+            [
+                '"""',
+                '"""'
+            ]
+        ],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ]
+        ]
+    },
+    ocaml: {
+        aliases: [
+            'OCaml',
+            'ocaml'
+        ],
+        filenames: [
+            'dune',
+            'dune-project'
+        ],
+        extensions: [
+            '.ml',
+            '.mli',
+            '.mll',
+            '.mly',
+            '.eliom',
+            '.eliomi'
+        ],
+        lineComments: [],
+        blockComments: [
+            [
+                '(*',
+                '*)'
+            ]
+        ],
+        blockStrings: [
+            [
+                '{|',
+                '|}'
+            ]
+        ],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ]
+        ]
+    },
+    rescript: {
+        aliases: [
+            'ReScript',
+            'rescript'
+        ],
+        filenames: [],
+        extensions: [
+            '.res',
+            '.resi'
+        ],
+        lineComments: [
+            '//'
+        ],
+        blockComments: [
+            [
+                '/*',
+                '*/'
+            ]
+        ],
+        blockStrings: [
+            [
+                '`',
+                '`'
+            ]
+        ],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    elixir: {
+        aliases: [
+            'Elixir',
+            'elixir'
+        ],
+        filenames: [
+            'mix.lock'
+        ],
+        extensions: [
+            '.ex',
+            '.exs',
+            '.eex',
+            '.leex',
+            '.heex',
+            '.sface'
+        ],
+        lineComments: [
+            '#'
+        ],
+        blockComments: [],
+        blockStrings: [
+            [
+                '"""',
+                '"""'
+            ]
+        ],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    erlang: {
+        aliases: [
+            'Erlang',
+            'erlang'
+        ],
+        filenames: [
+            'rebar.config'
+        ],
+        extensions: [
+            '.erl',
+            '.hrl',
+            '.escript',
+            '.app.src'
+        ],
+        lineComments: [
+            '%'
+        ],
+        blockComments: [],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    racket: {
+        aliases: [
+            'Racket',
+            'racket'
+        ],
+        filenames: [],
+        extensions: [
+            '.rkt',
+            '.rktl',
+            '.rktd'
+        ],
+        lineComments: [
+            ';'
+        ],
+        blockComments: [
+            [
+                '#|',
+                '|#'
+            ]
+        ],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ]
+        ]
+    },
+    scheme: {
+        aliases: [
+            'Scheme',
+            'scheme'
+        ],
+        filenames: [],
+        extensions: [
+            '.scm',
+            '.ss',
+            '.sld',
+            '.sps',
+            '.sls'
+        ],
+        lineComments: [
+            ';'
+        ],
+        blockComments: [
+            [
+                '#|',
+                '|#'
+            ]
+        ],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ]
+        ]
+    },
+    lisp: {
+        aliases: [
+            'Lisp',
+            'lisp',
+            'commonlisp'
+        ],
+        filenames: [],
+        extensions: [
+            '.lisp',
+            '.lsp',
+            '.cl',
+            '.asd'
+        ],
+        lineComments: [
+            ';'
+        ],
+        blockComments: [
+            [
+                '#|',
+                '|#'
+            ]
+        ],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ]
+        ]
+    },
+    'emacs-lisp': {
+        aliases: [
+            'Emacs Lisp',
+            'emacs-lisp',
+            'elisp'
+        ],
+        filenames: [
+            '.emacs',
+            'init.el'
+        ],
+        extensions: [
+            '.el'
+        ],
+        lineComments: [
+            ';'
+        ],
+        blockComments: [],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ]
+        ]
+    },
+    zig: {
+        aliases: [
+            'Zig',
+            'zig'
+        ],
+        filenames: [],
+        extensions: [
+            '.zig',
+            '.zon'
+        ],
+        lineComments: [
+            '//'
+        ],
+        blockComments: [],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    nim: {
+        aliases: [
+            'Nim',
+            'nim'
+        ],
+        filenames: [],
+        extensions: [
+            '.nim',
+            '.nims',
+            '.nimble'
+        ],
+        lineComments: [
+            '#'
+        ],
+        blockComments: [
+            [
+                '#[',
+                ']#'
+            ]
+        ],
+        blockStrings: [
+            [
+                '"""',
+                '"""'
+            ]
+        ],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    crystal: {
+        aliases: [
+            'Crystal',
+            'crystal'
+        ],
+        filenames: [
+            'shard.yml'
+        ],
+        extensions: [
+            '.cr',
+            '.ecr'
+        ],
+        lineComments: [
+            '#'
+        ],
+        blockComments: [],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    gleam: {
+        aliases: [
+            'Gleam',
+            'gleam'
+        ],
+        filenames: [],
+        extensions: [
+            '.gleam'
+        ],
+        lineComments: [
+            '//'
+        ],
+        blockComments: [],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ]
+        ]
+    },
+    odin: {
+        aliases: [
+            'Odin',
+            'odin'
+        ],
+        filenames: [],
+        extensions: [
+            '.odin'
+        ],
+        lineComments: [
+            '//'
+        ],
+        blockComments: [
+            [
+                '/*',
+                '*/'
+            ]
+        ],
+        blockStrings: [
+            [
+                '`',
+                '`'
+            ]
+        ],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    d: {
+        aliases: [
+            'D',
+            'd'
+        ],
+        filenames: [],
+        extensions: [
+            '.d',
+            '.di'
+        ],
+        lineComments: [
+            '//'
+        ],
+        blockComments: [
+            [
+                '/*',
+                '*/'
+            ],
+            [
+                '/+',
+                '+/'
+            ]
+        ],
+        blockStrings: [
+            [
+                '`',
+                '`'
+            ]
+        ],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    asm: {
+        aliases: [
+            'Assembly',
+            'asm',
+            'assembly',
+            'nasm',
+            'arm'
+        ],
+        filenames: [],
+        extensions: [
+            '.asm',
+            '.s',
+            '.nasm',
+            '.a51',
+            '.i86'
+        ],
+        lineComments: [
+            ';',
+            '#',
+            '//',
+            '@'
+        ],
+        blockComments: [
+            [
+                '/*',
+                '*/'
+            ]
+        ],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    solidity: {
+        aliases: [
+            'Solidity',
+            'solidity'
+        ],
+        filenames: [],
+        extensions: [
+            '.sol'
+        ],
+        lineComments: [
+            '//'
+        ],
+        blockComments: [
+            [
+                '/*',
+                '*/'
+            ]
+        ],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    terraform: {
+        aliases: [
+            'Terraform',
+            'terraform',
+            'hcl',
+            'tf'
+        ],
+        filenames: [],
+        extensions: [
+            '.tf',
+            '.tfvars',
+            '.hcl',
+            '.nomad'
+        ],
+        lineComments: [
+            '#',
+            '//'
+        ],
+        blockComments: [
+            [
+                '/*',
+                '*/'
+            ]
+        ],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ]
+        ]
+    },
+    nix: {
+        aliases: [
+            'Nix',
+            'nix'
+        ],
+        filenames: [],
+        extensions: [
+            '.nix'
+        ],
+        lineComments: [
+            '#'
+        ],
+        blockComments: [
+            [
+                '/*',
+                '*/'
+            ]
+        ],
+        blockStrings: [
+            [
+                "''",
+                "''"
+            ]
+        ],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ]
+        ]
+    },
+    jsonnet: {
+        aliases: [
+            'Jsonnet',
+            'jsonnet'
+        ],
+        filenames: [],
+        extensions: [
+            '.jsonnet',
+            '.libsonnet'
+        ],
+        lineComments: [
+            '//',
+            '#'
+        ],
+        blockComments: [
+            [
+                '/*',
+                '*/'
+            ]
+        ],
+        blockStrings: [
+            [
+                '|||',
+                '|||'
+            ]
+        ],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    bicep: {
+        aliases: [
+            'Bicep',
+            'bicep'
+        ],
+        filenames: [],
+        extensions: [
+            '.bicep',
+            '.bicepparam'
+        ],
+        lineComments: [
+            '//'
+        ],
+        blockComments: [
+            [
+                '/*',
+                '*/'
+            ]
+        ],
+        blockStrings: [
+            [
+                "'''",
+                "'''"
+            ]
+        ],
+        lineStrings: [
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    starlark: {
+        aliases: [
+            'Starlark',
+            'starlark',
+            'bazel',
+            'bzl'
+        ],
+        filenames: [
+            'BUILD',
+            'BUILD.bazel',
+            'WORKSPACE',
+            'WORKSPACE.bazel',
+            'MODULE.bazel'
+        ],
+        extensions: [
+            '.bzl',
+            '.bazel',
+            '.star'
+        ],
+        lineComments: [
+            '#'
+        ],
+        blockComments: [
+            [
+                '"""',
+                '"""'
+            ]
+        ],
+        blockStrings: [
+            [
+                '"""',
+                '"""'
+            ]
+        ],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ],
+        blockStringAsComment: true
+    },
+    meson: {
+        aliases: [
+            'Meson',
+            'meson'
+        ],
+        filenames: [
+            'meson.build',
+            'meson.options',
+            'meson_options.txt'
+        ],
+        extensions: [],
+        lineComments: [
+            '#'
+        ],
+        blockComments: [],
+        blockStrings: [
+            [
+                "'''",
+                "'''"
+            ]
+        ],
+        lineStrings: [
+            [
+                "'",
+                "'"
+            ],
+            [
+                '"',
+                '"'
+            ]
+        ]
+    },
+    toml: {
+        aliases: [
+            'TOML',
+            'toml'
+        ],
+        filenames: [
+            'Cargo.lock',
+            'Pipfile',
+            'poetry.lock',
+            'uv.lock'
+        ],
+        extensions: [
+            '.toml'
+        ],
+        lineComments: [
+            '#'
+        ],
+        blockComments: [],
+        blockStrings: [
+            [
+                '"""',
+                '"""'
+            ],
+            [
+                "'''",
+                "'''"
+            ]
+        ],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    proto: {
+        aliases: [
+            'Protocol Buffers',
+            'proto',
+            'proto3',
+            'protobuf'
+        ],
+        filenames: [],
+        extensions: [
+            '.proto'
+        ],
+        lineComments: [
+            '//'
+        ],
+        blockComments: [
+            [
+                '/*',
+                '*/'
+            ]
+        ],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    thrift: {
+        aliases: [
+            'Thrift',
+            'thrift'
+        ],
+        filenames: [],
+        extensions: [
+            '.thrift'
+        ],
+        lineComments: [
+            '//',
+            '#'
+        ],
+        blockComments: [
+            [
+                '/*',
+                '*/'
+            ]
+        ],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    graphql: {
+        aliases: [
+            'GraphQL',
+            'graphql',
+            'gql'
+        ],
+        filenames: [],
+        extensions: [
+            '.graphql',
+            '.graphqls',
+            '.gql'
+        ],
+        lineComments: [
+            '#'
+        ],
+        blockComments: [],
+        blockStrings: [
+            [
+                '"""',
+                '"""'
+            ]
+        ],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ]
+        ],
+        blockStringAsComment: true
+    },
+    prisma: {
+        aliases: [
+            'Prisma',
+            'prisma'
+        ],
+        filenames: [],
+        extensions: [
+            '.prisma'
+        ],
+        lineComments: [
+            '///',
+            '//'
+        ],
+        blockComments: [],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ]
+        ]
+    },
+    verilog: {
+        aliases: [
+            'Verilog',
+            'verilog'
+        ],
+        filenames: [],
+        extensions: [
+            '.v',
+            '.vh'
+        ],
+        lineComments: [
+            '//'
+        ],
+        blockComments: [
+            [
+                '/*',
+                '*/'
+            ]
+        ],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ]
+        ]
+    },
+    systemverilog: {
+        aliases: [
+            'SystemVerilog',
+            'systemverilog'
+        ],
+        filenames: [],
+        extensions: [
+            '.sv',
+            '.svh'
+        ],
+        lineComments: [
+            '//'
+        ],
+        blockComments: [
+            [
+                '/*',
+                '*/'
+            ]
+        ],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ]
+        ]
+    },
+    vhdl: {
+        aliases: [
+            'VHDL',
+            'vhdl'
+        ],
+        filenames: [],
+        extensions: [
+            '.vhd',
+            '.vhdl',
+            '.vho',
+            '.vht'
+        ],
+        lineComments: [
+            '--'
+        ],
+        blockComments: [
+            [
+                '/*',
+                '*/'
+            ]
+        ],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ]
+        ]
+    },
+    wgsl: {
+        aliases: [
+            'WGSL',
+            'wgsl'
+        ],
+        filenames: [],
+        extensions: [
+            '.wgsl'
+        ],
+        lineComments: [
+            '//'
+        ],
+        blockComments: [
+            [
+                '/*',
+                '*/'
+            ]
+        ],
+        blockStrings: [],
+        lineStrings: []
+    },
+    metal: {
+        aliases: [
+            'Metal',
+            'metal'
+        ],
+        filenames: [],
+        extensions: [
+            '.metal'
+        ],
+        lineComments: [
+            '//'
+        ],
+        blockComments: [
+            [
+                '/*',
+                '*/'
+            ]
+        ],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ]
+        ]
+    },
+    qml: {
+        aliases: [
+            'QML',
+            'qml'
+        ],
+        filenames: [],
+        extensions: [
+            '.qml',
+            '.qbs'
+        ],
+        lineComments: [
+            '//'
+        ],
+        blockComments: [
+            [
+                '/*',
+                '*/'
+            ]
+        ],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    gdscript: {
+        aliases: [
+            'GDScript',
+            'gdscript'
+        ],
+        filenames: [],
+        extensions: [
+            '.gd'
+        ],
+        lineComments: [
+            '#'
+        ],
+        blockComments: [
+            [
+                '"""',
+                '"""'
+            ]
+        ],
+        blockStrings: [
+            [
+                '"""',
+                '"""'
+            ]
+        ],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ],
+        blockStringAsComment: true
+    },
+    fortran: {
+        aliases: [
+            'Fortran',
+            'fortran'
+        ],
+        filenames: [],
+        extensions: [
+            '.f90',
+            '.f95',
+            '.f03',
+            '.f08',
+            '.f18',
+            '.f',
+            '.for',
+            '.ftn',
+            '.fpp'
+        ],
+        lineComments: [
+            '!'
+        ],
+        blockComments: [],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    cobol: {
+        aliases: [
+            'COBOL',
+            'cobol'
+        ],
+        filenames: [],
+        extensions: [
+            '.cbl',
+            '.cob',
+            '.ccp'
+        ],
+        lineComments: [
+            '*>',
+            '*'
+        ],
+        blockComments: [],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    ada: {
+        aliases: [
+            'Ada',
+            'ada'
+        ],
+        filenames: [],
+        extensions: [
+            '.adb',
+            '.ads',
+            '.ada',
+            '.gpr'
+        ],
+        lineComments: [
+            '--'
+        ],
+        blockComments: [],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ]
+        ]
+    },
+    pascal: {
+        aliases: [
+            'Pascal',
+            'pascal',
+            'objectpascal',
+            'delphi'
+        ],
+        filenames: [],
+        extensions: [
+            '.pas',
+            '.pp',
+            '.dpr',
+            '.dpk',
+            '.lpr'
+        ],
+        lineComments: [
+            '//'
+        ],
+        blockComments: [
+            [
+                '{',
+                '}'
+            ],
+            [
+                '(*',
+                '*)'
+            ]
+        ],
+        blockStrings: [],
+        lineStrings: [
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    abap: {
+        aliases: [
+            'ABAP',
+            'abap'
+        ],
+        filenames: [],
+        extensions: [
+            '.abap'
+        ],
+        lineComments: [
+            '*',
+            '"'
+        ],
+        blockComments: [],
+        blockStrings: [],
+        lineStrings: [
+            [
+                "'",
+                "'"
+            ],
+            [
+                '`',
+                '`'
+            ]
+        ]
+    },
+    tcl: {
+        aliases: [
+            'Tcl',
+            'tcl'
+        ],
+        filenames: [],
+        extensions: [
+            '.tcl',
+            '.tk',
+            '.exp'
+        ],
+        lineComments: [
+            '#'
+        ],
+        blockComments: [],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ]
+        ]
+    },
+    awk: {
+        aliases: [
+            'AWK',
+            'awk'
+        ],
+        filenames: [],
+        extensions: [
+            '.awk',
+            '.gawk',
+            '.mawk',
+            '.nawk'
+        ],
+        lineComments: [
+            '#'
+        ],
+        blockComments: [],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    haxe: {
+        aliases: [
+            'Haxe',
+            'haxe'
+        ],
+        filenames: [],
+        extensions: [
+            '.hx',
+            '.hxml'
+        ],
+        lineComments: [
+            '//'
+        ],
+        blockComments: [
+            [
+                '/*',
+                '*/'
+            ]
+        ],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    viml: {
+        aliases: [
+            'Vim Script',
+            'viml',
+            'vim'
+        ],
+        filenames: [
+            '.vimrc',
+            '_vimrc',
+            '.gvimrc',
+            '_gvimrc'
+        ],
+        extensions: [
+            '.vim',
+            '.vimrc'
+        ],
+        lineComments: [
+            '"'
+        ],
+        blockComments: [],
+        blockStrings: [],
+        lineStrings: [
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    ahk: {
+        aliases: [
+            'AutoHotkey',
+            'ahk',
+            'autohotkey'
+        ],
+        filenames: [],
+        extensions: [
+            '.ahk',
+            '.ahk2',
+            '.ah2'
+        ],
+        lineComments: [
+            ';'
+        ],
+        blockComments: [
+            [
+                '/*',
+                '*/'
+            ]
+        ],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ],
+            [
+                "'",
+                "'"
+            ]
+        ]
+    },
+    applescript: {
+        aliases: [
+            'AppleScript',
+            'applescript'
+        ],
+        filenames: [],
+        extensions: [
+            '.applescript'
+        ],
+        lineComments: [
+            '--',
+            '#'
+        ],
+        blockComments: [
+            [
+                '(*',
+                '*)'
+            ]
+        ],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ]
+        ]
+    },
+    http: {
+        aliases: [
+            'HTTP',
+            'http',
+            'rest'
+        ],
+        filenames: [],
+        extensions: [
+            '.http',
+            '.rest'
+        ],
+        lineComments: [
+            '#',
+            '//'
+        ],
+        blockComments: [],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ]
+        ]
+    },
+    plantuml: {
+        aliases: [
+            'PlantUML',
+            'plantuml',
+            'puml'
+        ],
+        filenames: [],
+        extensions: [
+            '.puml',
+            '.plantuml',
+            '.iuml',
+            '.pu',
+            '.wsd'
+        ],
+        lineComments: [
+            "'"
+        ],
+        blockComments: [
+            [
+                "/'",
+                "'/"
+            ]
+        ],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ]
+        ]
+    },
+    mermaid: {
+        aliases: [
+            'Mermaid',
+            'mermaid'
+        ],
+        filenames: [],
+        extensions: [
+            '.mmd',
+            '.mermaid'
+        ],
+        lineComments: [
+            '%%'
+        ],
+        blockComments: [],
+        blockStrings: [],
+        lineStrings: [
+            [
+                '"',
+                '"'
+            ]
+        ]
     }
 };

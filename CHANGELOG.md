@@ -7,6 +7,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 * workspace counter in status bar.
 - Added: Kotlin language support (#129)
+- Added: Built-in definitions for many more major languages (Vue, Svelte, Astro, Scala, Haskell, Elixir, Erlang, OCaml, Zig, Nim, Crystal, Solidity, Terraform/HCL, TOML, GraphQL, Protocol Buffers, Verilog/SystemVerilog, VHDL, Fortran, COBOL, Ada, Pascal, Tcl, AWK, and others)
 - Fixed: `TypeError: str.replace is not a function` when an installed extension provides a language configuration that does not follow the type definition (#119)
 
 ## [3.7.2]
