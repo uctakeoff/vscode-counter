@@ -3,7 +3,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { Count } from './LineCounter';
-import { LanguageConf, LineCounterTable } from './LineCounterTable';
+import { LanguageConf, LineCounterTable, toStringPairs, toStrings } from './LineCounterTable';
 import Gitignore from './Gitignore';
 import { buildUri, compileTemplate, createTextDecoder, currentWorkspaceFolder, dirUri, readJsonFile, readUtf8Files, showTextPreview, writeTextFile } from './vscode-utils';
 import { internalDefinitions } from './internalDefinitions';
@@ -470,13 +470,13 @@ const append = (langs: Map<string, LanguageConf>, id: string, value: Partial<Lan
             lineStrings: [],
         };
     });
-    langExt.aliases.push(...(value.aliases ?? []));
-    langExt.filenames.push(...(value.filenames ?? []));
-    langExt.extensions.push(...(value.extensions ?? []));
-    langExt.lineComments.push(...(value.lineComments ?? []));
-    langExt.blockComments.push(...(value.blockComments ?? []));
-    langExt.blockStrings.push(...(value.blockStrings ?? []));
-    langExt.lineStrings.push(...(value.lineStrings ?? []));
+    langExt.aliases.push(...toStrings(value.aliases));
+    langExt.filenames.push(...toStrings(value.filenames));
+    langExt.extensions.push(...toStrings(value.extensions));
+    langExt.lineComments.push(...toStrings(value.lineComments));
+    langExt.blockComments.push(...toStringPairs(value.blockComments));
+    langExt.blockStrings.push(...toStringPairs(value.blockStrings));
+    langExt.lineStrings.push(...toStringPairs(value.lineStrings));
     langExt.blockStringAsComment = langExt.blockStringAsComment || value.blockStringAsComment;
     return langExt;
 };
@@ -503,17 +503,15 @@ const collectLanguageConfigurations = (langs: Map<string, LanguageConf>): Promis
                                 const langConf = await readJsonFile<VscodeLanguageConfiguration>(confUrl, {});
                                 // log(`"${confUrl.fsPath}" :${l.id}\n aliases:${l.aliases}\n extensions:${l.extensions}\n filenames:${l.filenames}`, l);
                                 if (langConf.comments) {
-                                    if (langConf.comments.lineComment) {
-                                        langExt.lineComments.push(langConf.comments.lineComment);
-                                    }
-                                    if (langConf.comments.blockComment && langConf.comments.blockComment.length >= 2) {
-                                        langExt.blockComments.push(langConf.comments.blockComment);
-                                    }
+                                    // The contents of language-configuration.json are not guaranteed to follow the type definition.
+                                    // (ex. `"blockComment": [["<!--", "-->"], ["{#", "#}"]]`) #119
+                                    langExt.lineComments.push(...toStrings(langConf.comments.lineComment));
+                                    langExt.blockComments.push(...toStringPairs(langConf.comments.blockComment));
                                 }
-                                if (langConf.autoClosingPairs) {
+                                if (Array.isArray(langConf.autoClosingPairs)) {
                                     const maybeString = langConf.autoClosingPairs
-                                        .map(v => Array.isArray(v) ? v : [v.open, v.close])
-                                        .filter((v): v is [string, string] => v && typeof v[0] === 'string' && typeof v[1] === 'string' && !'[{('.includes(v[0]));
+                                        .map(v => Array.isArray(v) ? v : [v?.open, v?.close])
+                                        .filter((v): v is [string, string] => typeof v[0] === 'string' && typeof v[1] === 'string' && !'[{('.includes(v[0]));
                                     // log(`${l.id}`, langConf.autoClosingPairs, maybeString);
                                     langExt.lineStrings.push(...maybeString);
                                 }

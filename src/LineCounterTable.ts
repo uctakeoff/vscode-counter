@@ -12,17 +12,39 @@ export type LanguageConf = {
     lineStrings: [string, string][];
     blockStringAsComment?: boolean;
 }
+const isStringPair = (value: unknown): value is [string, string] => {
+    return Array.isArray(value) && typeof value[0] === 'string' && typeof value[1] === 'string';
+};
+/**
+ * Picks up strings from a value of unknown shape.
+ * Language settings can be hand-written or come from other extensions, so they are not always well-formed.
+ */
+export const toStrings = (value: unknown): string[] => {
+    if (typeof value === 'string') {return [value];}
+    if (Array.isArray(value)) {return value.filter((v): v is string => typeof v === 'string');}
+    return [];
+};
+/**
+ * Picks up `[open, close]` pairs from a value of unknown shape.
+ * Accepts a bare pair (`['<!--', '-->']`), an array of pairs, and nested arrays of them.
+ */
+export const toStringPairs = (value: unknown): [string, string][] => {
+    if (isStringPair(value)) {return [[value[0], value[1]]];}
+    if (Array.isArray(value)) {return value.flatMap(v => toStringPairs(v));}
+    return [];
+};
+
 const uniqueLanguageConf = (conf: LanguageConf) => {
     // console.log(`1langExtensions : `, conf);
-    conf.aliases = [...new Set(conf.aliases)];
-    conf.filenames = [...new Set(conf.filenames)];
-    conf.extensions = [...new Set(conf.extensions)];
-    conf.lineComments = [...new Set(conf.lineComments)];
-    conf.blockComments = [...new Map(conf.blockComments)];
-    conf.blockStrings = [...new Map(conf.blockStrings)];
-    conf.lineStrings = [...new Map(conf.lineStrings)];
+    conf.aliases = [...new Set(toStrings(conf.aliases))];
+    conf.filenames = [...new Set(toStrings(conf.filenames))];
+    conf.extensions = [...new Set(toStrings(conf.extensions))];
+    conf.lineComments = [...new Set(toStrings(conf.lineComments))];
+    conf.blockComments = [...new Map(toStringPairs(conf.blockComments))];
+    conf.blockStrings = [...new Map(toStringPairs(conf.blockStrings))];
+    conf.lineStrings = [...new Map(toStringPairs(conf.lineStrings))];
     // console.log(`2langExtensions : `, conf);
-    conf.lineStrings = (conf.lineStrings ?? []).filter(p => {
+    conf.lineStrings = conf.lineStrings.filter(p => {
         return conf.blockStrings.every(b => !p[0].startsWith(b[0]))
             && conf.blockComments.every(b => !p[0].startsWith(b[0]));
     });

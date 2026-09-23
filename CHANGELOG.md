@@ -7,6 +7,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 * workspace counter in status bar.
 - Added: Kotlin language support (#129)
+- Fixed: `TypeError: str.replace is not a function` when an installed extension provides a language configuration that does not follow the type definition (#119)
 
 ## [3.7.2]
 ### Changed
