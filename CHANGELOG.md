@@ -6,6 +6,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [Unreleased]
 
 * workspace counter in status bar.
+- Added: Localized command titles and setting descriptions for all VS Code display languages (de, es, fr, it, ko, ru, zh-tw, pt-br, tr, pl, cs, hu; in addition to the existing ja and zh-cn)
 - Added: Kotlin language support (#129)
 - Added: Built-in definitions for many more major languages (Vue, Svelte, Astro, Scala, Haskell, Elixir, Erlang, OCaml, Zig, Nim, Crystal, Solidity, Terraform/HCL, TOML, GraphQL, Protocol Buffers, Verilog/SystemVerilog, VHDL, Fortran, COBOL, Ada, Pascal, Tcl, AWK, and others)
 - Fixed: `TypeError: str.replace is not a function` when an installed extension provides a language configuration that does not follow the type definition (#119)
