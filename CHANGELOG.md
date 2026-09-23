@@ -4,10 +4,13 @@ All notable changes to the "vscode-counter" extension will be documented in this
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
 ## [Unreleased]
+
+## [3.8.1]
 ### Changed
 - `.gitignore` matching now uses the `ignore` package instead of the hand-written pattern-to-RegExp translation, so patterns follow git's own specification.
   - Matching a large repository is much faster: 20,000 deep paths against 10,000 patterns went from about 24.5s to about 1.0s, because the previous implementation compiled every pattern into one large alternation RegExp that backtracked heavily on deep paths.
   - Behaviour change: a file can no longer be re-included when one of its parent directories is excluded, matching git. Given `.vscode/` followed by `!.vscode/extensions.json`, that file is now reported as ignored, as `git check-ignore` does.
+- The package no longer carries dependency files that are never loaded, such as the ESM builds that the CommonJS extension does not resolve. The download is 140 KB instead of 183 KB, even with the new `ignore` dependency.
 
 ### Fixed
 - Language configurations contributed by installed extensions could be dropped. The collection step resolved as soon as a running counter reached the total contribution count, which could happen while contributions were still being enumerated, so the comment and string markers read from each extension's `language-configuration.json` were lost.
