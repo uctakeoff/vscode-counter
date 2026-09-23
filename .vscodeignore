@@ -16,3 +16,14 @@ out/test/**
 work/**
 images/**
 vitest.*
+
+# Dependency files that are never loaded. The extension is CommonJS, so `require`
+# resolves to the commonjs/umd builds and the ESM ones are dead weight.
+# Keep every package.json (they carry `exports` and the `type` of each build
+# directory) and every LICENSE.
+node_modules/**/README.md
+node_modules/**/CHANGELOG.md
+node_modules/**/SECURITY.md
+node_modules/**/dist/esm/**
+node_modules/**/lib/esm/**
+node_modules/ignore/legacy.js
